@@ -15,7 +15,9 @@
 # verify the tag at https://hub.docker.com/u/ethpandaops.
 
 participants:
-  # --- confirmed-present EL images ---
+  # All four EL images confirmed present on Docker Hub (2026-04-29) and the
+  # geth/erigon/lighthouse images were pre-pulled successfully. besu is omitted
+  # (ethpandaops/besu:glamsterdam-devnet-0 is not built yet).
   - el_type: geth
     el_image: "ethpandaops/geth:glamsterdam-devnet-0"
     cl_type: lighthouse
@@ -28,19 +30,17 @@ participants:
     cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
     count: 1
 
-  # --- enable after verifying these tags exist on Docker Hub ---
-  # (EIP-7928 is implemented by reth & nethermind per the client tracker; the
-  #  ethpandaops images follow the same glamsterdam-devnet-N tag pattern.)
-  # - el_type: reth
-  #   el_image: "ethpandaops/reth:glamsterdam-devnet-0"
-  #   cl_type: lighthouse
-  #   cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
-  #   count: 1
-  # - el_type: nethermind
-  #   el_image: "ethpandaops/nethermind:glamsterdam-devnet-0"
-  #   cl_type: lighthouse
-  #   cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
-  #   count: 1
+  - el_type: reth
+    el_image: "ethpandaops/reth:glamsterdam-devnet-0"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
+    count: 1
+
+  - el_type: nethermind
+    el_image: "ethpandaops/nethermind:glamsterdam-devnet-0"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
+    count: 1
 
 network_params:
   network: "kurtosis"

@@ -25,8 +25,9 @@ so we can compare each EL's independently-computed BAL for the same block.
 ## Image tags (already pinned)
 
 `glamsterdam-devnet.yaml` pins **real** current images:
-`ethpandaops/<client>:glamsterdam-devnet-0` (verified on Docker Hub 2026-04-29;
-geth + erigon active, reth + nethermind commented until you confirm their tags).
+`ethpandaops/<client>:glamsterdam-devnet-0` (verified on Docker Hub 2026-04-29).
+geth + erigon + reth + nethermind are active (all four EL tags confirmed; geth/
+erigon/lighthouse pre-pulled OK). besu is omitted — not built for devnet-0 yet.
 
 - When ethpandaops cut a newer devnet, bump `-devnet-0` everywhere.
 - Browse tags: https://hub.docker.com/u/ethpandaops
