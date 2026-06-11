@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import Any
 
 from .base import Detector, Finding
+from ..bal.differential import cross_client
 
 
 class BalSystemContractIndexConfusionDetector(Detector):
@@ -73,7 +74,11 @@ class BalSystemContractIndexConfusionDetector(Detector):
                 )
             )
 
-        mismatch = _find_client_bal_mismatch(trace.get("observations", []))
+        # When real BAL bytes are attached, the real-bytes path below supersedes
+        # the legacy hash-only mismatch check (avoid double-reporting one split).
+        raw_by_client, declared_by_client, header_hash = _extract_client_bals(trace)
+
+        mismatch = None if raw_by_client else _find_client_bal_mismatch(trace.get("observations", []))
         if mismatch:
             findings.append(
                 self._finding(
@@ -102,6 +107,85 @@ class BalSystemContractIndexConfusionDetector(Detector):
                     rule_refs=rule_refs,
                 )
             )
+
+        # ── Real path: decode actual client BAL bytes and diff them ──────────
+        if raw_by_client:
+            findings.extend(
+                self._real_bal_findings(
+                    trace,
+                    cross_client(raw_by_client, header_hash, declared_by_client),
+                    start_ordinal=len(findings) + 1,
+                    spec_refs=spec_refs,
+                    rule_refs=rule_refs,
+                )
+            )
+
+        return findings
+
+    def _real_bal_findings(
+        self,
+        trace: dict[str, Any],
+        result: dict[str, Any],
+        *,
+        start_ordinal: int,
+        spec_refs: list[str],
+        rule_refs: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        ordinal = start_ordinal
+
+        for client_id, analysis in sorted(result["analyses"].items()):
+            if not analysis.ok:
+                findings.append(self._finding(
+                    trace, ordinal,
+                    title=f"Client {client_id} emitted an undecodable BAL",
+                    severity="high", confidence="high",
+                    summary=f"Raw BAL bytes from {client_id} failed EIP-7928 RLP decoding.",
+                    evidence=[f"{client_id}: {analysis.error}"],
+                    impact="A client producing malformed BAL bytes is rejected by conforming peers — a consensus-relevant split.",
+                    recommendation="Capture the exact engine_getPayloadV6 bytes, minimize, and confirm the decode failure.",
+                    affected_clients=[client_id], spec_refs=spec_refs, rule_refs=rule_refs,
+                ))
+                ordinal += 1
+                continue
+
+            if analysis.canonical_violations:
+                findings.append(self._finding(
+                    trace, ordinal,
+                    title=f"Client {client_id} emitted a non-canonical BAL",
+                    severity="high", confidence="high",
+                    summary=f"{client_id}'s BAL violates EIP-7928 canonical ordering/uniqueness, which changes block_access_list_hash for identical accesses.",
+                    evidence=[f"{client_id}: {item}" for item in analysis.canonical_violations],
+                    impact="Non-canonical ordering yields a different BAL hash than a canonical client — a cross-client hash split.",
+                    recommendation="Pin the client commit; confirm whether it canonicalizes per spec; disclose privately if reproduced.",
+                    affected_clients=[client_id], spec_refs=spec_refs, rule_refs=rule_refs,
+                ))
+                ordinal += 1
+
+            if analysis.header_matches is False:
+                findings.append(self._finding(
+                    trace, ordinal,
+                    title=f"Client {client_id}: BAL body does not match header block_access_list_hash",
+                    severity="high", confidence="high",
+                    summary=f"keccak(BAL bytes) for {client_id} differs from the declared block header hash.",
+                    evidence=[f"{client_id}: keccak(bal)={analysis.recomputed_hash} header={analysis.header_hash}"],
+                    impact="A header committing to a different BAL than the body is invalid — a direct consensus signal.",
+                    recommendation="Re-capture the BAL bytes and header from the same payload; check for serialization drift.",
+                    affected_clients=[client_id], spec_refs=spec_refs, rule_refs=rule_refs,
+                ))
+                ordinal += 1
+
+        if not result["agree"]:
+            findings.append(self._finding(
+                trace, ordinal,
+                title="Execution clients produced different BAL bytes for the same block",
+                severity="critical", confidence="high",
+                summary="Decoded BALs from the client set do not all hash-agree; the structural diff localizes the split.",
+                evidence=result["structural_diff"] or [f"distinct BAL hashes: {result['distinct_hashes']}"],
+                impact="A real cross-client BAL divergence on live fork code is a consensus-split-class bug.",
+                recommendation="Minimize to the smallest diverging access, pin client commits, rerun on a clean local devnet, disclose privately.",
+                affected_clients=sorted(result["analyses"]), spec_refs=spec_refs, rule_refs=rule_refs,
+            ))
 
         return findings
 
@@ -199,4 +283,27 @@ def _find_client_bal_mismatch(observations: list[dict[str, Any]]) -> dict[str, A
         "affected_clients": sorted(status_by_client),
         "evidence": evidence,
     }
+
+
+def _extract_client_bals(
+    trace: dict[str, Any],
+) -> tuple[dict[str, bytes], dict[str, str], str | None]:
+    """Pull real BAL bytes out of `bal_output` observations that carry `bal_rlp`."""
+    raw_by_client: dict[str, bytes] = {}
+    declared_by_client: dict[str, str] = {}
+    for obs in trace.get("observations", []):
+        if not isinstance(obs, dict) or obs.get("kind") != "bal_output":
+            continue
+        rlp_hex = obs.get("bal_rlp")
+        client_id = obs.get("client_id", "<unknown>")
+        if not isinstance(rlp_hex, str) or not rlp_hex:
+            continue
+        try:
+            raw_by_client[client_id] = bytes.fromhex(rlp_hex[2:] if rlp_hex.startswith("0x") else rlp_hex)
+        except ValueError:
+            continue
+        if obs.get("bal_hash"):
+            declared_by_client[client_id] = obs["bal_hash"]
+    header_hash = trace.get("block", {}).get("block_access_list_hash")
+    return raw_by_client, declared_by_client, header_hash
 
