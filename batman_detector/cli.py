@@ -167,6 +167,34 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
+    from .harness import load_endpoints, load_jwt_secret, nodes_from_endpoints, run_live_differential
+
+    endpoints = load_endpoints(Path(args.endpoints))
+    jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
+    spec = load_json(Path(args.payload_spec))
+    nodes = nodes_from_endpoints(endpoints, jwt_secret=jwt_secret)
+
+    result = run_live_differential(
+        nodes,
+        spec.get("forkchoice_state", {}),
+        spec.get("payload_attributes"),
+        header_hash=spec.get("block_access_list_hash"),
+    )
+
+    print(f"clients queried: {sorted(nodes)}")
+    print(f"clients returning a BAL: {result['clients_with_bal']}")
+    for client_id, note in sorted(result.get("notes", {}).items()):
+        print(f"  note[{client_id}]: {note}")
+    print(f"agree: {result['agree']}")
+    if not result["agree"]:
+        print("DIVERGENCE:")
+        for item in result["structural_diff"] or [f"distinct BAL hashes: {result['distinct_hashes']}"]:
+            print(f"  - {item}")
+        return 3
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="batman",
@@ -204,6 +232,16 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--detector", action="append", help="Detector id to include. Can be repeated.")
     report.add_argument("--output")
     report.set_defaults(func=_cmd_report)
+
+    live = subparsers.add_parser(
+        "bal-diff-live",
+        help="Build a payload on each EL Engine API endpoint and diff their BALs",
+    )
+    live.add_argument("--endpoints", required=True, help="endpoints.json from devnet/endpoints.sh")
+    live.add_argument("--jwt-secret", help="path to the Engine API JWT secret (hex)")
+    live.add_argument("--payload-spec", required=True,
+                      help="JSON with forkchoice_state and payload_attributes")
+    live.set_defaults(func=_cmd_bal_diff_live)
 
     return parser
 
