@@ -51,6 +51,18 @@ class TestBalCodec(unittest.TestCase):
         bal = _sample_bal()
         self.assertEqual(decode_bal(encode_bal(bal)), bal)
 
+    def test_rejects_out_of_range_values(self):
+        with self.assertRaises(ValueError):
+            StorageChange(1 << 32, 1)
+        with self.assertRaises(ValueError):
+            StorageChange(0, 1 << 256)
+        with self.assertRaises(ValueError):
+            NonceChange(0, 1 << 64)
+
+    def test_rejects_empty_slot_changes(self):
+        with self.assertRaises(ValueError):
+            SlotChanges(slot=7, changes=[])
+
     def test_word_encoding_changes_hash(self):
         # Same accesses, different uint256 lay-out -> different bytes/hash.
         # This is itself a cross-client divergence class, not just an internal knob.
@@ -81,6 +93,12 @@ class TestBalCodec(unittest.TestCase):
         ])
         violations = check_canonical(bal)
         self.assertTrue(any("both storage_changes and storage_reads" in x for x in violations))
+
+    def test_decode_rejects_malformed_nested_shapes(self):
+        with self.assertRaises(ValueError):
+            decode_bal(b"\x80")  # not a list
+        with self.assertRaises(ValueError):
+            decode_bal(bytes.fromhex("c7c683010203"))  # AccountChanges with wrong length
 
     def test_canonicalize_repairs_ordering(self):
         # A clearly-unordered two-account list: wrong account order, wrong slot

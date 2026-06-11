@@ -6,6 +6,10 @@ from typing import Any
 from .base import Detector, Finding
 from ..bal.differential import cross_client
 
+# Provenance kinds that count as real client evidence (and may escalate a
+# cross-client divergence to critical). Everything else is a control/import.
+LIVE_PROVENANCE_KINDS = {"live_devnet", "live_client", "private_devnet"}
+
 
 class BalSystemContractIndexConfusionDetector(Detector):
     detector_id = "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"
@@ -133,6 +137,18 @@ class BalSystemContractIndexConfusionDetector(Detector):
     ) -> list[Finding]:
         findings: list[Finding] = []
         ordinal = start_ordinal
+        evidence_level = _evidence_level(trace)
+        split_severity = "critical" if evidence_level == "live" else "high"
+        split_title = (
+            "Execution clients produced different BAL bytes for the same block"
+            if evidence_level == "live"
+            else "Synthetic or imported BAL bytes diverge for the same block shape"
+        )
+        split_summary = (
+            "Decoded BALs from the client set do not all hash-agree; the structural diff localizes the split."
+            if evidence_level == "live"
+            else "Decoded BALs differ, but trace provenance is not live-client evidence. Treat this as a control or imported corpus signal until reproduced on real client builds."
+        )
 
         for client_id, analysis in sorted(result["analyses"].items()):
             if not analysis.ok:
@@ -166,11 +182,19 @@ class BalSystemContractIndexConfusionDetector(Detector):
                 findings.append(self._finding(
                     trace, ordinal,
                     title=f"Client {client_id}: BAL body does not match header block_access_list_hash",
-                    severity="high", confidence="high",
+                    severity="high" if evidence_level == "live" else "medium", confidence="high",
                     summary=f"keccak(BAL bytes) for {client_id} differs from the declared block header hash.",
                     evidence=[f"{client_id}: keccak(bal)={analysis.recomputed_hash} header={analysis.header_hash}"],
-                    impact="A header committing to a different BAL than the body is invalid — a direct consensus signal.",
-                    recommendation="Re-capture the BAL bytes and header from the same payload; check for serialization drift.",
+                    impact=(
+                        "A header committing to a different BAL than the body is invalid — a direct consensus signal."
+                        if evidence_level == "live"
+                        else "In synthetic/imported traces this is a fixture consistency signal, not proof of a real client bug."
+                    ),
+                    recommendation=(
+                        "Re-capture the BAL bytes and header from the same payload; check for serialization drift."
+                        if evidence_level == "live"
+                        else "Keep one declared header hash per synthetic control, but do not treat this as bounty evidence until live outputs are captured."
+                    ),
                     affected_clients=[client_id], spec_refs=spec_refs, rule_refs=rule_refs,
                 ))
                 ordinal += 1
@@ -178,12 +202,20 @@ class BalSystemContractIndexConfusionDetector(Detector):
         if not result["agree"]:
             findings.append(self._finding(
                 trace, ordinal,
-                title="Execution clients produced different BAL bytes for the same block",
-                severity="critical", confidence="high",
-                summary="Decoded BALs from the client set do not all hash-agree; the structural diff localizes the split.",
+                title=split_title,
+                severity=split_severity, confidence="high",
+                summary=split_summary,
                 evidence=result["structural_diff"] or [f"distinct BAL hashes: {result['distinct_hashes']}"],
-                impact="A real cross-client BAL divergence on live fork code is a consensus-split-class bug.",
-                recommendation="Minimize to the smallest diverging access, pin client commits, rerun on a clean local devnet, disclose privately.",
+                impact=(
+                    "A real cross-client BAL divergence on live fork code is a consensus-split-class bug."
+                    if evidence_level == "live"
+                    else "This proves the detector can localize a divergence, not that any real client is vulnerable."
+                ),
+                recommendation=(
+                    "Minimize to the smallest diverging access, pin client commits, rerun on a clean local devnet, disclose privately."
+                    if evidence_level == "live"
+                    else "Replace synthetic/imported observations with live Engine API outputs before assigning bounty-grade severity."
+                ),
                 affected_clients=sorted(result["analyses"]), spec_refs=spec_refs, rule_refs=rule_refs,
             ))
 
@@ -199,6 +231,15 @@ def _spec_refs(trace: dict[str, Any]) -> list[str]:
             commit = ref.get("commit", "")
             refs.append(" ".join(part for part in [name, url, commit] if part))
     return refs
+
+
+def _evidence_level(trace: dict[str, Any]) -> str:
+    provenance = trace.get("provenance", {})
+    if not isinstance(provenance, dict):
+        return "unknown"
+    if provenance.get("kind") in LIVE_PROVENANCE_KINDS:
+        return "live"
+    return "synthetic"
 
 
 def _rule_refs(ruleset: dict[str, Any] | None, detector_id: str) -> list[str]:
@@ -306,4 +347,3 @@ def _extract_client_bals(
             declared_by_client[client_id] = obs["bal_hash"]
     header_hash = trace.get("block", {}).get("block_access_list_hash")
     return raw_by_client, declared_by_client, header_hash
-

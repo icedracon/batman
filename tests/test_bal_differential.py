@@ -102,6 +102,7 @@ class TestDetectorRealPath(unittest.TestCase):
             "trace_id": "t-real-001",
             "block": {"transaction_count": 1,
                       "block_access_list_hash": "0x" + bal_hash(_canonical_bal()).hex()},
+            "provenance": {"kind": "synthetic_fixture", "bounty_eligible": False},
             "events": [],
             "observations": [
                 {"kind": "bal_output", "client_id": "geth", "bal_rlp": "0x" + good.hex()},
@@ -114,7 +115,16 @@ class TestDetectorRealPath(unittest.TestCase):
         findings = detector.run(self._trace(encode_bal(_canonical_bal()), encode_bal(_noncanonical_bal())))
         titles = [f.title for f in findings]
         self.assertTrue(any("non-canonical BAL" in t for t in titles))
-        self.assertTrue(any("different BAL bytes for the same block" in t for t in titles))
+        self.assertTrue(any("diverge for the same block shape" in t for t in titles))
+        self.assertTrue(any(f.severity == "high" for f in findings))
+
+    def test_detector_uses_critical_only_for_live_provenance(self):
+        detector = DETECTORS["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"]()
+        trace = self._trace(encode_bal(_canonical_bal()), encode_bal(_noncanonical_bal()))
+        trace["provenance"] = {"kind": "live_devnet", "bounty_eligible": True}
+
+        findings = detector.run(trace)
+
         self.assertTrue(any(f.severity == "critical" for f in findings))
 
 

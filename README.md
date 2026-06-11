@@ -21,7 +21,7 @@ The PDF in `docs/` is an early ChatGPT brainstorm and is **superseded** by that 
 - **`devnet/`** — a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-27 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
+31 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
 
 ## Quick Start
 
@@ -29,7 +29,8 @@ The PDF in `docs/` is an early ChatGPT brainstorm and is **superseded** by that 
 # Unit tests
 python -m unittest discover
 
-# Generate a REAL BAL fixture (no placeholders) and scan it — no devnet needed
+# Generate a real encoded BAL fixture and scan it — no devnet needed.
+# This is synthetic control data, not a bounty-grade live-client finding.
 python -m batman_detector.bal.fixtures > examples\traces\bal_system_index_confusion.generated.json
 python -m batman_detector run examples\traces\bal_system_index_confusion.generated.json
 
@@ -39,11 +40,15 @@ python -m batman_detector list-detectors
 python -m batman_detector static-scan examples\audit_targets\bal_first_scan.sample.json
 ```
 
-The generated scan yields a CRITICAL finding localizing an index-confusion split, e.g.:
+The generated scan yields a high-confidence synthetic-control finding localizing an
+index-confusion split, e.g.:
 
 ```
 slot 0x7: change list differs [(0, 1), (1, 2), (2, 3)] vs [(0, 1), (1, 3)]
 ```
+
+Only traces with live/private-devnet provenance are allowed to escalate cross-client
+BAL divergence to critical severity.
 
 ## Live differential (needs a Gloas devnet)
 

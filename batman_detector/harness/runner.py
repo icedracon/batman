@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from ..bal.differential import cross_client
@@ -72,3 +73,49 @@ def run_live_differential(
     result["notes"] = notes
     result["clients_with_bal"] = sorted(raw_by_client)
     return result
+
+
+def build_live_trace(
+    raw_by_client: dict[str, bytes],
+    header_hash: str | None = None,
+    notes: dict[str, str] | None = None,
+    trace_id: str | None = None,
+) -> dict[str, Any]:
+    """Wrap live client BAL bytes in a schema-valid Batman trace stamped with
+    `provenance.kind = "live_devnet"`, so the detector treats a real divergence as
+    bounty-grade (critical) rather than a synthetic control.
+    """
+    now = datetime.now(timezone.utc)
+    observations = [
+        {"kind": "bal_output", "client_id": cid, "bal_rlp": "0x" + raw.hex()}
+        for cid, raw in raw_by_client.items()
+    ]
+    block: dict[str, Any] = {"transaction_count": 0}
+    if header_hash:
+        block["block_access_list_hash"] = header_hash
+
+    return {
+        "schema_version": "batman.trace.v1",
+        "trace_id": trace_id or "live-" + now.strftime("%Y%m%dT%H%M%SZ"),
+        "created_at": now.isoformat(),
+        "target": {
+            "fork": "Glamsterdam",
+            "eips": ["EIP-7928"],
+            "spec_refs": [{
+                "name": "EIP-7928 Block-Level Access Lists",
+                "url": "https://eips.ethereum.org/EIPS/eip-7928",
+            }],
+        },
+        "environment": {
+            "topology": "live kurtosis devnet",
+            "clients": [{"id": cid, "layer": "EL", "name": cid} for cid in raw_by_client],
+        },
+        "scenario": {
+            "detector_ids": ["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
+            "description": "Live Engine API BAL differential across execution clients.",
+        },
+        "provenance": {"kind": "live_devnet", "bounty_eligible": True, "client_notes": notes or {}},
+        "block": block,
+        "events": [],
+        "observations": observations,
+    }

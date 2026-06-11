@@ -7,11 +7,16 @@ name = "batman-detector"
 version = "0.1.0"
 description = "Glamsterdam/Gloas detector harness for Ethereum protocol security research"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Zorayr Saroyan" }]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "eth-utils>=2.0,<7",
+    "rlp>=4.0,<5",
+]
 
 [project.scripts]
 batman = "batman_detector.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["batman_detector*"]

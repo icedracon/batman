@@ -13,7 +13,7 @@ Engine API; against a live Kurtosis devnet (see devnet/) it talks real JSON-RPC.
 from .jwt import load_jwt_secret, make_engine_jwt
 from .engine_client import EngineClient, EngineError
 from .config import load_endpoints, nodes_from_endpoints
-from .runner import collect_bals, extract_bal_hex, run_live_differential
+from .runner import build_live_trace, collect_bals, extract_bal_hex, run_live_differential
 
 __all__ = [
     "load_jwt_secret",
@@ -22,6 +22,7 @@ __all__ = [
     "EngineError",
     "load_endpoints",
     "nodes_from_endpoints",
+    "build_live_trace",
     "collect_bals",
     "extract_bal_hex",
     "run_live_differential",

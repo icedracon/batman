@@ -54,6 +54,8 @@ def check_canonical(bal: BlockAccessList) -> list[str]:
             v.append(f"{ah}: duplicate slot in storage_changes")
 
         for s in a.storage_changes:
+            if not s.changes:
+                v.append(f"{ah} slot {s.slot}: SlotChanges must contain at least one StorageChange")
             idxs = [c.block_access_index for c in s.changes]
             if not _ordered(idxs):
                 v.append(f"{ah} slot {s.slot}: storage changes not ordered by block_access_index")

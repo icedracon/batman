@@ -98,6 +98,18 @@ def validate_trace(data: dict[str, Any]) -> list[str]:
         if client_id and client_ids and client_id not in client_ids:
             warnings.append(f"observation references unknown client id: {client_id}")
 
+    provenance = data.get("provenance")
+    if provenance is None:
+        warnings.append("trace has no provenance; synthetic/imported data cannot be bounty-grade")
+    elif not isinstance(provenance, dict):
+        raise ValidationError("`provenance` must be an object when present")
+    else:
+        kind = provenance.get("kind")
+        if kind not in {"synthetic_fixture", "imported_corpus", "live_devnet", "live_client", "private_devnet"}:
+            raise ValidationError("`provenance.kind` is not recognized")
+        if provenance.get("bounty_eligible") is True and kind not in {"live_devnet", "live_client", "private_devnet"}:
+            warnings.append("only live/private-devnet provenance should be marked bounty_eligible")
+
     if not events:
         warnings.append("trace has no events")
     if not client_ids:

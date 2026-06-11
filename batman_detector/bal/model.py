@@ -55,17 +55,27 @@ def _int_min(value: int) -> bytes:
 
 
 def _word(value: int, enc: WordEncoding) -> bytes:
-    if value < 0 or value >= 1 << 256:
-        raise ValueError("storage key/value out of uint256 range")
+    _check_uint(value, 256, "storage key/value")
     if enc is WordEncoding.FIXED32:
         return value.to_bytes(32, "big")
     return _int_min(value)
+
+
+def _check_uint(value: int, bits: int, label: str) -> None:
+    if not isinstance(value, int):
+        raise ValueError(f"{label} must be an integer")
+    if value < 0 or value >= 1 << bits:
+        raise ValueError(f"{label} out of uint{bits} range")
 
 
 @dataclass(frozen=True)
 class StorageChange:
     block_access_index: int  # uint32
     new_value: int           # uint256
+
+    def __post_init__(self) -> None:
+        _check_uint(self.block_access_index, 32, "block_access_index")
+        _check_uint(self.new_value, 256, "storage value")
 
     def to_rlp(self, enc: WordEncoding) -> list:
         return [_int_min(self.block_access_index), _word(self.new_value, enc)]
@@ -76,6 +86,11 @@ class SlotChanges:
     slot: int                       # uint256 storage key
     changes: list[StorageChange] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        _check_uint(self.slot, 256, "storage slot")
+        if not self.changes:
+            raise ValueError("SlotChanges must contain at least one StorageChange")
+
     def to_rlp(self, enc: WordEncoding) -> list:
         return [_word(self.slot, enc), [c.to_rlp(enc) for c in self.changes]]
 
@@ -84,6 +99,10 @@ class SlotChanges:
 class BalanceChange:
     block_access_index: int  # uint32
     post_balance: int        # uint256
+
+    def __post_init__(self) -> None:
+        _check_uint(self.block_access_index, 32, "block_access_index")
+        _check_uint(self.post_balance, 256, "post_balance")
 
     def to_rlp(self, enc: WordEncoding) -> list:
         return [_int_min(self.block_access_index), _int_min(self.post_balance)]
@@ -94,6 +113,10 @@ class NonceChange:
     block_access_index: int  # uint32
     new_nonce: int           # uint64
 
+    def __post_init__(self) -> None:
+        _check_uint(self.block_access_index, 32, "block_access_index")
+        _check_uint(self.new_nonce, 64, "nonce")
+
     def to_rlp(self, enc: WordEncoding) -> list:
         return [_int_min(self.block_access_index), _int_min(self.new_nonce)]
 
@@ -102,6 +125,11 @@ class NonceChange:
 class CodeChange:
     block_access_index: int  # uint32
     new_code: bytes          # bytecode
+
+    def __post_init__(self) -> None:
+        _check_uint(self.block_access_index, 32, "block_access_index")
+        if not isinstance(self.new_code, bytes):
+            raise ValueError("new_code must be bytes")
 
     def to_rlp(self, enc: WordEncoding) -> list:
         return [_int_min(self.block_access_index), self.new_code]
@@ -117,8 +145,12 @@ class AccountChanges:
     code_changes: list[CodeChange] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        if not isinstance(self.address, bytes):
+            raise ValueError("address must be bytes")
         if len(self.address) != 20:
             raise ValueError(f"address must be 20 bytes, got {len(self.address)}")
+        for key in self.storage_reads:
+            _check_uint(key, 256, "storage read key")
 
     def to_rlp(self, enc: WordEncoding) -> list:
         return [

@@ -84,10 +84,10 @@ block_access_list_hash = keccak256(rlp(bal))
 empty BAL hash = 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
 ```
 
-The empty-BAL hash is asserted in the test suite, so the codec is provably wired to
-the real spec. The uint256 word-encoding (minimal big-endian int vs fixed 32 bytes)
-is modeled explicitly as `WordEncoding` because it is itself a cross-client
-hash-divergence axis, not an internal detail.
+The empty-BAL hash is asserted in the test suite, so the codec is wired to the real
+spec hash rule. Batman also keeps an experimental `WordEncoding` switch around
+uint256 byte layout to make encoding drift easy to test, but only the currently
+pinned EIP-7928 form should be treated as normative.
 
 ## Implemented vs pending
 
@@ -113,6 +113,8 @@ the **spec commit** in every run so results stay reproducible as the spec change
 
 Local/private devnets only — never mainnet, public RPCs, or third-party infra.
 Suspected client bugs go through **private disclosure** before any public mention.
+Synthetic fixtures are controls: they can prove Batman localizes a bug class, but
+they are never bounty-grade evidence until reproduced against live client builds.
 
 ## Roadmap
 

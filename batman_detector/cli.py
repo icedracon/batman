@@ -18,6 +18,22 @@ from .schemas import (
 from .static_scan import scan_audit_target
 
 
+def _print_findings(findings) -> None:
+    for finding in findings:
+        print()
+        print(f"[{finding.severity.upper()}] {finding.title}")
+        print(f"detector: {finding.detector_id}")
+        print(f"confidence: {finding.confidence}")
+        print(f"summary: {finding.summary}")
+        if finding.affected_clients:
+            print(f"affected clients: {', '.join(finding.affected_clients)}")
+        if finding.evidence:
+            print("evidence:")
+            for item in finding.evidence:
+                print(f"  - {item}")
+        print(f"recommendation: {finding.recommendation}")
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     data = load_json(Path(args.path))
     try:
@@ -86,20 +102,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     for warning in trace_warnings + ruleset_warnings:
         print(f"warning: {warning}")
 
-    for finding in findings:
-        print()
-        print(f"[{finding.severity.upper()}] {finding.title}")
-        print(f"detector: {finding.detector_id}")
-        print(f"confidence: {finding.confidence}")
-        print(f"summary: {finding.summary}")
-        if finding.affected_clients:
-            print(f"affected clients: {', '.join(finding.affected_clients)}")
-        if finding.evidence:
-            print("evidence:")
-            for item in finding.evidence:
-                print(f"  - {item}")
-        print(f"recommendation: {finding.recommendation}")
-
+    _print_findings(findings)
     return 0
 
 
@@ -168,31 +171,28 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
-    from .harness import load_endpoints, load_jwt_secret, nodes_from_endpoints, run_live_differential
+    from .harness import build_live_trace, collect_bals, load_endpoints, load_jwt_secret, nodes_from_endpoints
 
     endpoints = load_endpoints(Path(args.endpoints))
     jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
     spec = load_json(Path(args.payload_spec))
     nodes = nodes_from_endpoints(endpoints, jwt_secret=jwt_secret)
 
-    result = run_live_differential(
-        nodes,
-        spec.get("forkchoice_state", {}),
-        spec.get("payload_attributes"),
-        header_hash=spec.get("block_access_list_hash"),
+    # Collect each EL's BAL, wrap it in a live-provenance trace, and run it through
+    # the detector so a real cross-client divergence escalates to critical.
+    raw_by_client, notes = collect_bals(
+        nodes, spec.get("forkchoice_state", {}), spec.get("payload_attributes")
     )
+    trace = build_live_trace(raw_by_client, header_hash=spec.get("block_access_list_hash"), notes=notes)
+    findings = DETECTORS["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"]().run(trace)
 
     print(f"clients queried: {sorted(nodes)}")
-    print(f"clients returning a BAL: {result['clients_with_bal']}")
-    for client_id, note in sorted(result.get("notes", {}).items()):
+    print(f"clients returning a BAL: {sorted(raw_by_client)}")
+    for client_id, note in sorted(notes.items()):
         print(f"  note[{client_id}]: {note}")
-    print(f"agree: {result['agree']}")
-    if not result["agree"]:
-        print("DIVERGENCE:")
-        for item in result["structural_diff"] or [f"distinct BAL hashes: {result['distinct_hashes']}"]:
-            print(f"  - {item}")
-        return 3
-    return 0
+    print(f"findings: {len(findings)}")
+    _print_findings(findings)
+    return 3 if any(finding.severity in ("critical", "high") for finding in findings) else 0
 
 
 def build_parser() -> argparse.ArgumentParser:

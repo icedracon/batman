@@ -105,5 +105,23 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(nodes["geth"].url, "http://e:8551")
 
 
+class TestLiveTrace(unittest.TestCase):
+    def test_build_live_trace_is_schema_valid_and_live(self):
+        from batman_detector.harness import build_live_trace
+        from batman_detector.schemas import validate_trace
+
+        trace = build_live_trace({"geth": encode_bal(_canonical())})
+        validate_trace(trace)  # must not raise
+        self.assertEqual(trace["provenance"]["kind"], "live_devnet")
+
+    def test_live_divergence_escalates_to_critical(self):
+        from batman_detector.detectors import DETECTORS
+        from batman_detector.harness import build_live_trace
+
+        trace = build_live_trace({"geth": encode_bal(_canonical()), "reth": encode_bal(_variant())})
+        findings = DETECTORS["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"]().run(trace)
+        self.assertTrue(any(f.severity == "critical" for f in findings))
+
+
 if __name__ == "__main__":
     unittest.main()

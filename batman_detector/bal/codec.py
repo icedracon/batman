@@ -43,6 +43,14 @@ def _int(value) -> int:
     return int.from_bytes(value, "big") if value else 0
 
 
+def _expect_list(value, length: int | None, label: str) -> list:
+    if not isinstance(value, list):
+        raise ValueError(f"{label} must be an RLP list")
+    if length is not None and len(value) != length:
+        raise ValueError(f"{label} must be a {length}-element list")
+    return value
+
+
 def decode_bal(data: bytes) -> BlockAccessList:
     """Decode raw RLP BAL bytes (e.g. from a client's engine_getPayloadV6) into the
     model. Word-encoding-agnostic: both MINIMAL and FIXED32 decode to the same ints.
@@ -50,26 +58,48 @@ def decode_bal(data: bytes) -> BlockAccessList:
     Raises ValueError on structurally malformed input — itself a useful signal when
     differentially testing clients.
     """
-    raw = rlp.decode(data)
-    if not isinstance(raw, list):
-        raise ValueError("BAL must be an RLP list")
+    try:
+        decoded = rlp.decode(data)
+    except rlp.exceptions.DecodingError as exc:
+        raise ValueError(f"invalid RLP: {exc}") from exc
+    raw = _expect_list(decoded, None, "BAL")
 
     accounts: list[AccountChanges] = []
     for acc in raw:
-        if not isinstance(acc, list) or len(acc) != 6:
-            raise ValueError("AccountChanges must be a 6-element list")
+        acc = _expect_list(acc, 6, "AccountChanges")
         address, raw_sc, raw_reads, raw_bal, raw_nonce, raw_code = acc
+        raw_sc = _expect_list(raw_sc, None, "storage_changes")
+        raw_reads = _expect_list(raw_reads, None, "storage_reads")
+        raw_bal = _expect_list(raw_bal, None, "balance_changes")
+        raw_nonce = _expect_list(raw_nonce, None, "nonce_changes")
+        raw_code = _expect_list(raw_code, None, "code_changes")
 
         storage_changes = []
         for sc in raw_sc:
+            sc = _expect_list(sc, 2, "SlotChanges")
             slot, raw_changes = sc
-            changes = [StorageChange(_int(c[0]), _int(c[1])) for c in raw_changes]
+            raw_changes = _expect_list(raw_changes, None, "SlotChanges.changes")
+            changes = []
+            for c in raw_changes:
+                c = _expect_list(c, 2, "StorageChange")
+                changes.append(StorageChange(_int(c[0]), _int(c[1])))
             storage_changes.append(SlotChanges(_int(slot), changes))
 
         storage_reads = [_int(k) for k in raw_reads]
-        balance_changes = [BalanceChange(_int(b[0]), _int(b[1])) for b in raw_bal]
-        nonce_changes = [NonceChange(_int(n[0]), _int(n[1])) for n in raw_nonce]
-        code_changes = [CodeChange(_int(c[0]), bytes(c[1])) for c in raw_code]
+        balance_changes = []
+        for b in raw_bal:
+            b = _expect_list(b, 2, "BalanceChange")
+            balance_changes.append(BalanceChange(_int(b[0]), _int(b[1])))
+        nonce_changes = []
+        for n in raw_nonce:
+            n = _expect_list(n, 2, "NonceChange")
+            nonce_changes.append(NonceChange(_int(n[0]), _int(n[1])))
+        code_changes = []
+        for c in raw_code:
+            c = _expect_list(c, 2, "CodeChange")
+            if isinstance(c[1], list):
+                raise ValueError("CodeChange.new_code must be bytes")
+            code_changes.append(CodeChange(_int(c[0]), bytes(c[1])))
 
         accounts.append(
             AccountChanges(

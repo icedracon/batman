@@ -59,6 +59,18 @@
         "success_condition": { "type": "string" }
       }
     },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["synthetic_fixture", "imported_corpus", "live_devnet", "live_client", "private_devnet"]
+        },
+        "bounty_eligible": { "type": "boolean" },
+        "description": { "type": "string" },
+        "captured_at": { "type": "string" },
+        "operator": { "type": "string" }
+      }
+    },
     "block": {
       "type": "object",
       "required": ["number", "transaction_count"],
@@ -104,6 +116,7 @@
         "kind": { "type": "string" },
         "status": { "type": "string" },
         "bal_hash": { "type": "string" },
+        "bal_rlp": { "type": "string" },
         "payload_status": { "type": "string" },
         "block_hash": { "type": "string" },
         "state_root": { "type": "string" },
@@ -112,4 +125,3 @@
     }
   }
 }
-

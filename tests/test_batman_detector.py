@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class BatmanDetectorTests(unittest.TestCase):
     def test_sample_trace_validates(self):
         trace = load_json(ROOT / "examples" / "traces" / "bal_system_index_confusion.sample.json")
-        self.assertEqual(validate_trace(trace), [])
+        warnings = validate_trace(trace)
+        self.assertTrue(any("provenance" in warning for warning in warnings))
 
     def test_ruleset_validates(self):
         ruleset = load_json(ROOT / "configs" / "rulesets" / "glamsterdam-alpha.example.json")
