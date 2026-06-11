@@ -7,24 +7,31 @@ so we can compare each EL's independently-computed BAL for the same block.
 ## Prerequisites
 
 - **Docker** (running).
-- **Kurtosis CLI** — https://docs.kurtosis.com/install
+- **Kurtosis CLI.** Kurtosis has no native Windows build — install it inside **WSL**:
   ```bash
+  # In Windows PowerShell, install an Ubuntu distro if you don't have one:
+  #   wsl --install -d Ubuntu      (then set up the Linux user, reopen the shell)
+  # Inside the Ubuntu WSL shell:
+  echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
+  sudo apt update && sudo apt install -y kurtosis-cli
   kurtosis version
   ```
+  Make sure Docker Desktop has **WSL integration** enabled for that distro
+  (Docker Desktop → Settings → Resources → WSL integration).
 
-## Finding current Gloas / EIP-7928 images (do this first)
+  Run all the commands below from the WSL shell, in this repo's path
+  (e.g. `cd /mnt/c/Users/zevs/Documents/Glamsterdam`).
 
-`gloas_fork_epoch: 0` only works if the client images actually implement Gloas.
-The default `:master` / `:unstable` tags usually **don't** yet. Pin real builds:
+## Image tags (already pinned)
 
-- Images: https://hub.docker.com/u/ethpandaops (look for `gloas` / `glamsterdam`
-  / current `*-devnet-N` tags per client).
-- Which clients are ready + the active devnet: the Glamsterdam devnet specs and
-  forkmon under https://github.com/ethpandaops (e.g. `glamsterdam-devnets`).
-- EIP-7928 is an **EL** feature — only include ELs whose image emits BALs. Trim
-  `participants` in `glamsterdam-devnet.yaml` to those.
+`glamsterdam-devnet.yaml` pins **real** current images:
+`ethpandaops/<client>:glamsterdam-devnet-0` (verified on Docker Hub 2026-04-29;
+geth + erigon active, reth + nethermind commented until you confirm their tags).
 
-Edit `el_image` / `cl_image` in `glamsterdam-devnet.yaml` accordingly.
+- When ethpandaops cut a newer devnet, bump `-devnet-0` everywhere.
+- Browse tags: https://hub.docker.com/u/ethpandaops
+- EIP-7928 is implemented by geth, besu, reth, nethermind, erigon, nimbus-eth1,
+  ethrex — enable whichever ELs you want in `participants`.
 
 ## Run
 

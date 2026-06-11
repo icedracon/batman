@@ -1,59 +1,58 @@
 # Local multi-EL Glamsterdam / Gloas devnet for Batman BAL differential testing.
 #
 # Brings up several execution clients on one Gloas network (EIP-7732 ePBS +
-# EIP-7928 Block-Level Access Lists, activated at genesis) so Batman can ask each
-# EL to build/execute the same block and then compare their independently-computed
-# Block Access Lists.
+# EIP-7928 Block-Level Access Lists) so Batman can ask each EL to build the same
+# block and compare their independently-computed Block Access Lists.
 #
 # Run:
 #   kurtosis run --enclave batman-gloas github.com/ethpandaops/ethereum-package \
 #     --args-file devnet/glamsterdam-devnet.yaml
 #
-# IMPORTANT — el_image / cl_image MUST point to CURRENT Gloas/EIP-7928-capable
-# builds. The tags below are PLACEHOLDERS; the default :master/:unstable tags will
-# very likely NOT have Gloas yet. See devnet/README.md → "Finding current images".
-# Trim the participant list to whichever ELs currently implement EIP-7928.
+# Image tags below are the REAL current Glamsterdam devnet images
+# (ethpandaops/<client>:glamsterdam-devnet-0, verified on hub.docker.com/u/ethpandaops
+# 2026-04-29). When ethpandaops cut a newer devnet, bump "-devnet-0" everywhere.
+# If `kurtosis run` fails to pull a specific image, comment that participant out and
+# verify the tag at https://hub.docker.com/u/ethpandaops.
 
 participants:
+  # --- confirmed-present EL images ---
   - el_type: geth
-    el_image: "ethpandaops/geth:master"            # REPLACE: pin a Gloas/EIP-7928 build
+    el_image: "ethpandaops/geth:glamsterdam-devnet-0"
     cl_type: lighthouse
-    cl_image: "ethpandaops/lighthouse:unstable"    # REPLACE: pin a Gloas build
-    count: 1
-
-  - el_type: reth
-    el_image: "ethpandaops/reth:main"              # REPLACE
-    cl_type: teku
-    cl_image: "ethpandaops/teku:master"            # REPLACE
-    count: 1
-
-  - el_type: nethermind
-    el_image: "ethpandaops/nethermind:master"      # REPLACE
-    cl_type: prysm
-    cl_image: "ethpandaops/prysm:develop"          # REPLACE
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
     count: 1
 
   - el_type: erigon
-    el_image: "ethpandaops/erigon:main"            # REPLACE
+    el_image: "ethpandaops/erigon:glamsterdam-devnet-0"
     cl_type: lighthouse
-    cl_image: "ethpandaops/lighthouse:unstable"    # REPLACE
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
     count: 1
+
+  # --- enable after verifying these tags exist on Docker Hub ---
+  # (EIP-7928 is implemented by reth & nethermind per the client tracker; the
+  #  ethpandaops images follow the same glamsterdam-devnet-N tag pattern.)
+  # - el_type: reth
+  #   el_image: "ethpandaops/reth:glamsterdam-devnet-0"
+  #   cl_type: lighthouse
+  #   cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
+  #   count: 1
+  # - el_type: nethermind
+  #   el_image: "ethpandaops/nethermind:glamsterdam-devnet-0"
+  #   cl_type: lighthouse
+  #   cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-0"
+  #   count: 1
 
 network_params:
   network: "kurtosis"
-  # Prior fork epochs default to 0 (genesis) in this package; set explicitly for
-  # clarity. Gloas at epoch 0 turns on ePBS + BAL from the first block.
+  preset: "minimal"            # matches the ethpandaops glamsterdam-devnet-0 config (faster)
   electra_fork_epoch: 0
   fulu_fork_epoch: 0
-  gloas_fork_epoch: 0          # <-- EIP-7732 ePBS + EIP-7928 BAL at genesis
-  seconds_per_slot: 6          # faster test cycles (mainnet uses 12)
+  gloas_fork_epoch: 1          # Gloas (ePBS + BAL) at epoch 1, as in glamsterdam-devnet-0
+  seconds_per_slot: 6
   num_validator_keys_per_node: 64
-  preset: "mainnet"
 
-# Dora gives a lightweight beacon explorer to eyeball blocks/payloads.
-# Targeted BAL fixtures are driven by the Batman harness (engine_getPayloadV6),
-# not by random traffic — so a tx spammer is optional. If you want background
-# load, add "spamoor" (newer) or "tx_spammer" (older) depending on the package
-# version you pulled.
+# Dora = lightweight beacon explorer to eyeball blocks/payloads. Targeted BAL
+# fixtures are driven by the Batman harness (engine_getPayloadV6), not random
+# traffic, so a tx spammer is optional (add "spamoor" or "tx_spammer" for load).
 additional_services:
   - dora
