@@ -1,0 +1,107 @@
+{
+  "schema_version": "batman.trace.v1",
+  "trace_id": "trace-bal-system-index-confusion-sample-001",
+  "created_at": "2026-06-11T00:00:00Z",
+  "target": {
+    "fork": "Glamsterdam",
+    "eips": ["EIP-7928"],
+    "spec_refs": [
+      {
+        "name": "EIP-7928 Block-Level Access Lists",
+        "url": "https://eips.ethereum.org/EIPS/eip-7928",
+        "commit": "draft-as-of-2026-06-11"
+      }
+    ]
+  },
+  "environment": {
+    "topology": "single-block execution differential fixture",
+    "clients": [
+      {
+        "id": "geth-fixture",
+        "layer": "EL",
+        "name": "geth",
+        "version": "placeholder",
+        "commit": "replace-with-real-commit"
+      },
+      {
+        "id": "reth-fixture",
+        "layer": "EL",
+        "name": "reth",
+        "version": "placeholder",
+        "commit": "replace-with-real-commit"
+      }
+    ]
+  },
+  "scenario": {
+    "detector_ids": ["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
+    "description": "Synthetic fixture that touches the same storage slot in pre-execution, transaction, and post-execution BAL phases.",
+    "success_condition": "Real clients disagree on BAL bytes, BAL hash, payload validity, state root, or block hash for the same minimized fixture."
+  },
+  "block": {
+    "number": 1,
+    "slot": 1,
+    "transaction_count": 1,
+    "block_access_list_hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "events": [
+    {
+      "event_id": "bal-pre-001",
+      "timestamp_ms": 0,
+      "kind": "bal_access",
+      "phase": "pre_execution",
+      "block_access_index": 0,
+      "account": "0x0000000000000000000000000000000000001000",
+      "storage_slot": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "access_type": "write",
+      "value_after": "0x01",
+      "notes": "Pre-execution system hook writes the target slot."
+    },
+    {
+      "event_id": "bal-tx-001",
+      "timestamp_ms": 12,
+      "kind": "bal_access",
+      "phase": "transaction",
+      "block_access_index": 1,
+      "account": "0x0000000000000000000000000000000000001000",
+      "storage_slot": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "access_type": "read_write",
+      "value_after": "0x02",
+      "notes": "Transaction reads and writes the same slot."
+    },
+    {
+      "event_id": "bal-post-001",
+      "timestamp_ms": 20,
+      "kind": "bal_access",
+      "phase": "post_execution",
+      "block_access_index": 2,
+      "account": "0x0000000000000000000000000000000000001000",
+      "storage_slot": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "access_type": "write",
+      "value_after": "0x03",
+      "notes": "Post-execution phase writes the same slot after tx execution."
+    }
+  ],
+  "observations": [
+    {
+      "client_id": "geth-fixture",
+      "kind": "bal_output",
+      "status": "valid",
+      "bal_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "payload_status": "VALID",
+      "block_hash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+      "state_root": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "notes": "Synthetic placeholder observation."
+    },
+    {
+      "client_id": "reth-fixture",
+      "kind": "bal_output",
+      "status": "invalid",
+      "bal_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "payload_status": "INVALID",
+      "block_hash": "0x5555555555555555555555555555555555555555555555555555555555555555",
+      "state_root": "0x6666666666666666666666666666666666666666666666666666666666666666",
+      "notes": "Synthetic placeholder observation to exercise mismatch reporting."
+    }
+  ]
+}
+

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/ruleset.schema.json",
+  "title": "Batman Ruleset",
+  "type": "object",
+  "required": ["schema_version", "ruleset_id", "target_fork", "rules"],
+  "properties": {
+    "schema_version": { "const": "batman.ruleset.v1" },
+    "ruleset_id": { "type": "string", "minLength": 1 },
+    "target_fork": { "type": "string", "minLength": 1 },
+    "spec_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "url"],
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "commit": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "detector_id", "description"],
+        "properties": {
+          "rule_id": { "type": "string" },
+          "detector_id": { "type": "string" },
+          "description": { "type": "string" },
+          "severity_if_cross_client_mismatch": { "type": "string" },
+          "feature_flag": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

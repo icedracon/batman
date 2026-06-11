@@ -1,0 +1,57 @@
+{
+  "schema_version": "batman.fuzz_campaign.v1",
+  "campaign_id": "fuzz-bal-index-confusion-001",
+  "target_id": "audit-target-bal-first-scan",
+  "detector_id": "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION",
+  "input_space": {
+    "seed_trace": "../traces/bal_system_index_confusion.sample.json",
+    "fixture_family": "bal-system-transaction-post-overlap",
+    "transaction_count_range": [1, 8]
+  },
+  "mutators": [
+    {
+      "name": "phase_permutation",
+      "description": "Permute pre-execution, transaction, and post-execution access order while preserving declared block_access_index values.",
+      "parameters": {
+        "include_withdrawal_phase": true
+      }
+    },
+    {
+      "name": "same_slot_aliasing",
+      "description": "Force the same storage slot to appear in read, write, and read_write BAL entries across different phases.",
+      "parameters": {
+        "slot_count": 4
+      }
+    },
+    {
+      "name": "index_boundary_shift",
+      "description": "Generate boundary cases around index 0, 1, n, and n+1 to catch off-by-one canonicalization bugs.",
+      "parameters": {
+        "include_invalid_controls": true
+      }
+    }
+  ],
+  "invariants": [
+    {
+      "name": "bal_phase_index_invariant",
+      "description": "Pre-execution uses index 0, transactions use 1..n, and post-execution or withdrawal uses n+1.",
+      "severity_on_violation": "medium"
+    },
+    {
+      "name": "cross_client_bal_hash_equivalence",
+      "description": "All clients must produce or accept the same BAL hash for the same valid fixture.",
+      "severity_on_violation": "high"
+    },
+    {
+      "name": "cross_client_payload_status_equivalence",
+      "description": "All clients must agree on payload validity for the same fixture.",
+      "severity_on_violation": "high"
+    }
+  ],
+  "stop_conditions": {
+    "max_cases": 10000,
+    "max_minutes": 120,
+    "stop_on_high_confidence_mismatch": true
+  }
+}
+

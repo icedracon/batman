@@ -1,0 +1,89 @@
+{
+  "schema_version": "batman.audit_target.v1",
+  "target_id": "audit-target-bal-first-scan",
+  "name": "EIP-7928 BAL system-contract index first scan",
+  "target_type": "fixture",
+  "scope": {
+    "description": "Pre-deployment scan for BAL canonicalization mismatches around system-contract and transaction phase indices.",
+    "in_scope": [
+      "EIP-7928 BAL encoding",
+      "block_access_index boundary behavior",
+      "cross-client BAL hash equivalence",
+      "cross-client payload status equivalence"
+    ],
+    "out_of_scope": [
+      "mainnet testing",
+      "public RPC testing",
+      "third-party infrastructure testing",
+      "public disclosure before private report"
+    ]
+  },
+  "spec_refs": [
+    {
+      "name": "EIP-7928 Block-Level Access Lists",
+      "url": "https://eips.ethereum.org/EIPS/eip-7928",
+      "commit": "draft-as-of-2026-06-11",
+      "status": "draft",
+      "review_date": "2026-06-11"
+    },
+    {
+      "name": "EIP-7773 Hardfork Meta - Glamsterdam",
+      "url": "https://eips.ethereum.org/EIPS/eip-7773",
+      "commit": "draft-as-of-2026-06-11",
+      "status": "draft",
+      "review_date": "2026-06-11"
+    }
+  ],
+  "detector_ids": ["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
+  "files": [
+    {
+      "path": "../traces/bal_system_index_confusion.sample.json",
+      "kind": "trace",
+      "description": "Synthetic seed trace for BAL phase overlap."
+    }
+  ],
+  "fuzz_campaigns": ["../fuzz_campaigns/bal_index_confusion.sample.json"],
+  "client_matrix": [
+    {
+      "layer": "EL",
+      "name": "geth",
+      "version": "placeholder",
+      "commit": "replace-with-real-commit"
+    },
+    {
+      "layer": "EL",
+      "name": "reth",
+      "version": "placeholder",
+      "commit": "replace-with-real-commit"
+    },
+    {
+      "layer": "EL",
+      "name": "nethermind",
+      "version": "placeholder",
+      "commit": "replace-with-real-commit"
+    },
+    {
+      "layer": "EL",
+      "name": "erigon",
+      "version": "placeholder",
+      "commit": "replace-with-real-commit"
+    },
+    {
+      "layer": "EL",
+      "name": "besu",
+      "version": "placeholder",
+      "commit": "replace-with-real-commit"
+    }
+  ],
+  "bug_bounty": {
+    "program": "Ethereum Bug Bounty",
+    "private_disclosure_required": true,
+    "allowed_test_environments": ["local_devnet", "private_devnet"]
+  },
+  "deployment_gate": {
+    "blocks_real_world_deployment": true,
+    "max_allowed_severity": "medium",
+    "requires_reproducible_report": true
+  }
+}
+

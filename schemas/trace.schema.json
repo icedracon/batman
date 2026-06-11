@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/trace.schema.json",
+  "title": "Batman Trace",
+  "type": "object",
+  "required": ["schema_version", "trace_id", "created_at", "target", "environment", "scenario", "block", "events"],
+  "properties": {
+    "schema_version": { "const": "batman.trace.v1" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "target": {
+      "type": "object",
+      "required": ["fork", "eips", "spec_refs"],
+      "properties": {
+        "fork": { "type": "string" },
+        "eips": { "type": "array", "items": { "type": "string" } },
+        "spec_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url"],
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string" },
+              "commit": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["topology", "clients"],
+      "properties": {
+        "topology": { "type": "string" },
+        "clients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "layer", "name"],
+            "properties": {
+              "id": { "type": "string" },
+              "layer": { "enum": ["EL", "CL"] },
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "commit": { "type": "string" },
+              "image_digest": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["detector_ids", "description", "success_condition"],
+      "properties": {
+        "detector_ids": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" },
+        "success_condition": { "type": "string" }
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": ["number", "transaction_count"],
+      "properties": {
+        "number": { "type": "integer", "minimum": 0 },
+        "slot": { "type": "integer", "minimum": 0 },
+        "transaction_count": { "type": "integer", "minimum": 0 },
+        "block_access_list_hash": { "type": "string" }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": ["event_id", "kind"],
+      "properties": {
+        "event_id": { "type": "string" },
+        "timestamp_ms": { "type": "integer" },
+        "kind": { "type": "string" },
+        "client_id": { "type": "string" },
+        "phase": { "enum": ["pre_execution", "transaction", "post_execution", "withdrawal"] },
+        "block_access_index": { "type": "integer" },
+        "account": { "type": "string" },
+        "storage_slot": { "type": "string" },
+        "access_type": { "type": "string" },
+        "value_after": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": ["client_id", "kind"],
+      "properties": {
+        "client_id": { "type": "string" },
+        "kind": { "type": "string" },
+        "status": { "type": "string" },
+        "bal_hash": { "type": "string" },
+        "payload_status": { "type": "string" },
+        "block_hash": { "type": "string" },
+        "state_root": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
+

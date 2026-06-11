@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/finding.schema.json",
+  "title": "Batman Finding",
+  "type": "object",
+  "required": ["finding_id", "detector_id", "title", "severity", "confidence", "trace_id", "summary", "evidence"],
+  "properties": {
+    "finding_id": { "type": "string" },
+    "detector_id": { "type": "string" },
+    "title": { "type": "string" },
+    "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+    "confidence": { "enum": ["low", "medium", "high"] },
+    "trace_id": { "type": "string" },
+    "summary": { "type": "string" },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "impact": { "type": "string" },
+    "recommendation": { "type": "string" },
+    "affected_clients": { "type": "array", "items": { "type": "string" } },
+    "spec_refs": { "type": "array", "items": { "type": "string" } },
+    "rule_refs": { "type": "array", "items": { "type": "string" } }
+  }
+}
+

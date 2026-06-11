@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Keep generated/private disclosure reports out of normal commits.
+first-scan-report.md
+*-scan-report.md
+reports/private/
+

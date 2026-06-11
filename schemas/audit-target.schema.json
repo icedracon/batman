@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/audit-target.schema.json",
+  "title": "Batman Audit Target",
+  "type": "object",
+  "required": ["schema_version", "target_id", "name", "target_type", "scope", "spec_refs", "detector_ids"],
+  "properties": {
+    "schema_version": { "const": "batman.audit_target.v1" },
+    "target_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "target_type": {
+      "enum": ["spec", "client", "fixture", "contract", "trace-corpus", "deployment"]
+    },
+    "scope": {
+      "type": "object",
+      "required": ["description", "in_scope", "out_of_scope"],
+      "properties": {
+        "description": { "type": "string" },
+        "in_scope": { "type": "array", "items": { "type": "string" } },
+        "out_of_scope": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "spec_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "url"],
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "commit": { "type": "string" },
+          "status": { "type": "string" },
+          "review_date": { "type": "string" }
+        }
+      }
+    },
+    "detector_ids": { "type": "array", "items": { "type": "string" } },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "properties": {
+          "path": { "type": "string" },
+          "kind": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "fuzz_campaigns": { "type": "array", "items": { "type": "string" } },
+    "client_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["layer", "name"],
+        "properties": {
+          "layer": { "enum": ["EL", "CL"] },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "commit": { "type": "string" },
+          "image_digest": { "type": "string" }
+        }
+      }
+    },
+    "bug_bounty": {
+      "type": "object",
+      "properties": {
+        "program": { "type": "string" },
+        "private_disclosure_required": { "type": "boolean" },
+        "allowed_test_environments": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "deployment_gate": {
+      "type": "object",
+      "properties": {
+        "blocks_real_world_deployment": { "type": "boolean" },
+        "max_allowed_severity": { "type": "string" },
+        "requires_reproducible_report": { "type": "boolean" }
+      }
+    }
+  }
+}
+

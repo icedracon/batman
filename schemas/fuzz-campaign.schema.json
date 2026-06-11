@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/fuzz-campaign.schema.json",
+  "title": "Batman Fuzz Campaign",
+  "type": "object",
+  "required": ["schema_version", "campaign_id", "target_id", "detector_id", "input_space", "mutators", "invariants"],
+  "properties": {
+    "schema_version": { "const": "batman.fuzz_campaign.v1" },
+    "campaign_id": { "type": "string", "minLength": 1 },
+    "target_id": { "type": "string", "minLength": 1 },
+    "detector_id": { "type": "string", "minLength": 1 },
+    "input_space": {
+      "type": "object",
+      "properties": {
+        "seed_trace": { "type": "string" },
+        "fixture_family": { "type": "string" },
+        "transaction_count_range": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "mutators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "parameters": { "type": "object" }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "severity_on_violation": { "type": "string" }
+        }
+      }
+    },
+    "stop_conditions": {
+      "type": "object",
+      "properties": {
+        "max_cases": { "type": "integer", "minimum": 1 },
+        "max_minutes": { "type": "integer", "minimum": 1 },
+        "stop_on_high_confidence_mismatch": { "type": "boolean" }
+      }
+    }
+  }
+}
+

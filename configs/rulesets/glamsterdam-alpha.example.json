@@ -1,0 +1,36 @@
+{
+  "schema_version": "batman.ruleset.v1",
+  "ruleset_id": "glamsterdam-alpha-2026-06-11",
+  "target_fork": "Glamsterdam",
+  "spec_manifest": [
+    {
+      "name": "EIP-7928 Block-Level Access Lists",
+      "url": "https://eips.ethereum.org/EIPS/eip-7928",
+      "commit": "draft-as-of-2026-06-11",
+      "status": "draft"
+    },
+    {
+      "name": "EIP-7773 Hardfork Meta - Glamsterdam",
+      "url": "https://eips.ethereum.org/EIPS/eip-7773",
+      "commit": "draft-as-of-2026-06-11",
+      "status": "draft"
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "BAL-INDEX-001",
+      "detector_id": "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION",
+      "description": "Pre-execution system accesses must use block_access_index 0, transaction accesses must use 1..n, and post-execution or withdrawal accesses must use n+1.",
+      "severity_if_cross_client_mismatch": "high",
+      "feature_flag": "eip7928"
+    },
+    {
+      "rule_id": "BAL-INDEX-002",
+      "detector_id": "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION",
+      "description": "The same account/storage key touched across system and transaction phases is a priority fixture for client canonicalization differential testing.",
+      "severity_if_cross_client_mismatch": "high",
+      "feature_flag": "eip7928"
+    }
+  ]
+}
+
