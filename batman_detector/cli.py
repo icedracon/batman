@@ -170,29 +170,62 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _select_endpoints(endpoints: list[dict], include: list[str] | None, exclude: list[str] | None) -> list[dict]:
+    known = {entry["client_id"] for entry in endpoints}
+    include_set = set(include or [])
+    exclude_set = set(exclude or [])
+    unknown = sorted((include_set | exclude_set) - known)
+    if unknown:
+        raise ValueError(f"unknown client id(s): {', '.join(unknown)}")
+    selected = [
+        entry for entry in endpoints
+        if (not include_set or entry["client_id"] in include_set)
+        and entry["client_id"] not in exclude_set
+    ]
+    if not selected:
+        raise ValueError("client selection is empty")
+    return selected
+
+
 def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
     from .harness import (
         build_live_trace,
-        build_shared_payload_spec,
         collect_bals,
         load_endpoints,
         load_jwt_secret,
         nodes_from_endpoints,
+        wait_for_shared_payload_spec,
     )
 
-    endpoints = load_endpoints(Path(args.endpoints))
+    try:
+        endpoints = _select_endpoints(
+            load_endpoints(Path(args.endpoints)),
+            args.client,
+            args.exclude_client,
+        )
+    except ValueError as exc:
+        print(f"INVALID ENDPOINTS: {exc}", file=sys.stderr)
+        return 2
     jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
     spec = load_json(Path(args.payload_spec))
     nodes = nodes_from_endpoints(endpoints, jwt_secret=jwt_secret)
 
-    # --refresh: rebuild the spec on a head all clients share, so every client builds
-    # the SAME next block (a fair cross-client differential, not a stale fixed spec).
+    # --refresh: rebuild the spec only when all clients share the latest head, so every
+    # client builds the SAME next block. Historical common ancestors are not enough:
+    # some clients reject building on an older parent after forkchoice has advanced.
     if args.refresh:
-        fresh = build_shared_payload_spec(endpoints, seed_attrs=spec.get("payload_attributes", {}))
+        fresh = wait_for_shared_payload_spec(
+            endpoints,
+            seed_attrs=spec.get("payload_attributes", {}),
+            timeout_seconds=args.wait_shared_head,
+            poll_seconds=args.poll_interval,
+        )
         head = fresh["shared_head"]
         print(f"shared head: #{head['number']} {head['hash']} (all clients agree: {head['agree']})")
         if not head["agree"]:
-            print(f"  WARNING: clients disagree on block #{head['number']}: {head['client_hashes']}")
+            print(f"  current heads: {head['client_heads']}")
+            print("  not running same-head differential; retry or use --wait-shared-head SECONDS")
+            return 1
         spec = {**spec, "forkchoice_state": fresh["forkchoice_state"], "payload_attributes": fresh["payload_attributes"]}
 
     # Collect each EL's BAL, wrap it in a live-provenance trace, and run it through
@@ -202,6 +235,20 @@ def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
     )
     trace = build_live_trace(raw_by_client, header_hash=spec.get("block_access_list_hash"), notes=notes)
     findings = DETECTORS["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"]().run(trace)
+    if args.output_trace:
+        output = Path(args.output_trace)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(trace, indent=2, sort_keys=True), encoding="utf-8")
+        print(f"WROTE trace: {output}")
+    if args.output_report:
+        report = build_markdown_report(
+            trace,
+            detector_ids=["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
+        )
+        output = Path(args.output_report)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(report, encoding="utf-8")
+        print(f"WROTE report: {output}")
 
     print(f"clients queried: {sorted(nodes)}")
     print(f"clients returning a BAL: {sorted(raw_by_client)}")
@@ -215,7 +262,15 @@ def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
 def _cmd_bal_smoke_live(args: argparse.Namespace) -> int:
     from .harness import load_endpoints, load_jwt_secret, smoke_probe_current_heads
 
-    endpoints = load_endpoints(Path(args.endpoints))
+    try:
+        endpoints = _select_endpoints(
+            load_endpoints(Path(args.endpoints)),
+            args.client,
+            args.exclude_client,
+        )
+    except ValueError as exc:
+        print(f"INVALID ENDPOINTS: {exc}", file=sys.stderr)
+        return 2
     jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
     spec = load_json(Path(args.payload_spec))
     results = smoke_probe_current_heads(
@@ -240,6 +295,34 @@ def _cmd_bal_smoke_live(args: argparse.Namespace) -> int:
                 print(f"    error: {item['error']}")
 
     return 0 if all(item.get("engine_has_bal") for item in results) else 1
+
+
+def _cmd_bal_heads_live(args: argparse.Namespace) -> int:
+    from .harness import latest_head_agreement, load_endpoints
+
+    try:
+        endpoints = _select_endpoints(
+            load_endpoints(Path(args.endpoints)),
+            args.client,
+            args.exclude_client,
+        )
+    except ValueError as exc:
+        print(f"INVALID ENDPOINTS: {exc}", file=sys.stderr)
+        return 2
+    status = latest_head_agreement(endpoints)
+    payload = {"agree": status["agree"], "client_heads": status["client_heads"]}
+    if args.format == "json":
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"latest heads agree: {status['agree']}")
+        for client_id, head in sorted(status["client_heads"].items()):
+            print(f"  {client_id}: #{head['number']} {head['hash']}")
+    return 0 if status["agree"] else 1
+
+
+def _add_client_selection_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--client", action="append", help="Only include this client id; can be repeated")
+    parser.add_argument("--exclude-client", action="append", help="Exclude this client id; can be repeated")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -280,6 +363,15 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output")
     report.set_defaults(func=_cmd_report)
 
+    heads = subparsers.add_parser(
+        "bal-heads-live",
+        help="Show latest-head agreement across live EL RPC endpoints",
+    )
+    heads.add_argument("--endpoints", required=True, help="endpoints.json from devnet/endpoints.sh")
+    heads.add_argument("--format", choices=["text", "json"], default="text")
+    _add_client_selection_args(heads)
+    heads.set_defaults(func=_cmd_bal_heads_live)
+
     live = subparsers.add_parser(
         "bal-diff-live",
         help="Build a payload on each EL Engine API endpoint and diff their BALs",
@@ -290,6 +382,13 @@ def build_parser() -> argparse.ArgumentParser:
                       help="JSON with forkchoice_state and payload_attributes")
     live.add_argument("--refresh", action="store_true",
                       help="Rebuild the spec on a shared current head so all clients build the same block")
+    live.add_argument("--wait-shared-head", type=float, default=0,
+                      help="With --refresh, wait up to this many seconds for all latest heads to agree")
+    live.add_argument("--poll-interval", type=float, default=2,
+                      help="Seconds between shared-head checks")
+    live.add_argument("--output-trace", help="Write the live trace JSON artifact")
+    live.add_argument("--output-report", help="Write a Markdown detector report")
+    _add_client_selection_args(live)
     live.set_defaults(func=_cmd_bal_diff_live)
 
     smoke = subparsers.add_parser(
@@ -301,6 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--payload-spec", required=True,
                        help="JSON with payload_attributes used as a seed")
     smoke.add_argument("--format", choices=["text", "json"], default="text")
+    _add_client_selection_args(smoke)
     smoke.set_defaults(func=_cmd_bal_smoke_live)
 
     return parser

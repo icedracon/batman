@@ -15,11 +15,14 @@ from batman_detector.bal import (
 )
 from batman_detector.harness import (
     EngineClient,
+    build_shared_payload_spec,
     extract_bal_hex,
+    latest_head_agreement,
     make_engine_jwt,
     next_slot_payload_attributes,
     run_live_differential,
     smoke_probe_current_heads,
+    wait_for_shared_payload_spec,
 )
 from batman_detector.harness.config import nodes_from_endpoints
 
@@ -178,9 +181,7 @@ class TestSmokeProbe(unittest.TestCase):
         self.assertTrue(results[0]["engine_has_bal"])
         self.assertGreater(results[0]["engine_bal_bytes"], 0)
 
-    def test_build_shared_payload_spec_picks_common_head(self):
-        from batman_detector.harness import build_shared_payload_spec
-
+    def test_build_shared_payload_spec_requires_latest_head_agreement(self):
         endpoints = [
             {"client_id": "geth", "rpc": "geth:8545", "engine": "geth:8551"},
             {"client_id": "reth", "rpc": "reth:8545", "engine": "reth:8551"},
@@ -189,22 +190,75 @@ class TestSmokeProbe(unittest.TestCase):
             "geth:8545": {"number": "0x6", "hash": "0xnewgeth", "timestamp": "0x64", "gasLimit": "0x100"},
             "reth:8545": {"number": "0x5", "hash": "0xnewreth", "timestamp": "0x64", "gasLimit": "0x100"},
         }
-        block5 = {"number": "0x5", "hash": "0xshared", "timestamp": "0x60", "gasLimit": "0x100"}
 
         def rpc(url, method, params):
-            if params[0] == "latest":
-                return latest[url]
-            self.assertEqual(params[0], "0x5")  # common head = min(6, 5)
-            return block5
+            self.assertEqual(method, "eth_getBlockByNumber")
+            self.assertEqual(params, ["latest", False])
+            return latest[url]
 
         spec = build_shared_payload_spec(endpoints, seed_attrs={"prevRandao": "0x11"}, rpc=rpc)
-        self.assertEqual(spec["shared_head"]["number"], 5)
-        self.assertEqual(spec["shared_head"]["hash"], "0xshared")
+        self.assertFalse(spec["shared_head"]["agree"])
+        self.assertEqual(spec["shared_head"]["client_heads"]["geth"]["number"], 6)
+        self.assertEqual(spec["shared_head"]["client_heads"]["reth"]["number"], 5)
+
+    def test_build_shared_payload_spec_when_latest_heads_match(self):
+        endpoints = [
+            {"client_id": "geth", "rpc": "geth:8545", "engine": "geth:8551"},
+            {"client_id": "reth", "rpc": "reth:8545", "engine": "reth:8551"},
+        ]
+        head = {"number": "0x5", "hash": "0xshared", "timestamp": "0x60", "gasLimit": "0x100"}
+
+        def rpc(url, method, params):
+            return head
+
+        spec = build_shared_payload_spec(endpoints, seed_attrs={"prevRandao": "0x11"}, rpc=rpc)
         self.assertTrue(spec["shared_head"]["agree"])
+        self.assertEqual(spec["shared_head"]["number"], 5)
         self.assertEqual(spec["forkchoice_state"]["headBlockHash"], "0xshared")
         self.assertEqual(spec["payload_attributes"]["prevRandao"], "0x11")
         self.assertEqual(spec["payload_attributes"]["slotNumber"], "0x6")  # 5 + 1
         self.assertEqual(spec["payload_attributes"]["timestamp"], "0x6c")  # 0x60 + 12
+
+    def test_wait_for_shared_payload_spec_polls_until_heads_match(self):
+        endpoints = [
+            {"client_id": "geth", "rpc": "geth:8545", "engine": "geth:8551"},
+            {"client_id": "reth", "rpc": "reth:8545", "engine": "reth:8551"},
+        ]
+        calls = {"count": 0}
+        shared = {"number": "0x7", "hash": "0xshared", "timestamp": "0x80", "gasLimit": "0x100"}
+
+        def rpc(url, method, params):
+            calls["count"] += 1
+            if calls["count"] <= 2:
+                return {
+                    "geth:8545": {"number": "0x8", "hash": "0xgeth", "timestamp": "0x80", "gasLimit": "0x100"},
+                    "reth:8545": {"number": "0x7", "hash": "0xreth", "timestamp": "0x80", "gasLimit": "0x100"},
+                }[url]
+            return shared
+
+        spec = wait_for_shared_payload_spec(
+            endpoints,
+            timeout_seconds=1,
+            poll_seconds=0,
+            rpc=rpc,
+            sleeper=lambda _: None,
+        )
+
+        self.assertTrue(spec["shared_head"]["agree"])
+        self.assertEqual(spec["shared_head"]["hash"], "0xshared")
+
+    def test_latest_head_agreement_summarizes_client_heads(self):
+        endpoints = [
+            {"client_id": "geth", "rpc": "geth:8545", "engine": "geth:8551"},
+            {"client_id": "reth", "rpc": "reth:8545", "engine": "reth:8551"},
+        ]
+
+        def rpc(url, method, params):
+            return {"number": "0x7", "hash": "0xshared"}
+
+        status = latest_head_agreement(endpoints, rpc=rpc)
+        self.assertTrue(status["agree"])
+        self.assertEqual(status["client_heads"]["geth"], {"number": 7, "hash": "0xshared"})
 
 
 class TestLiveTrace(unittest.TestCase):

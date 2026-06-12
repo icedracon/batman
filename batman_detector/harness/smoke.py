@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 import urllib.request
 from typing import Any, Callable
 
@@ -46,40 +47,52 @@ def next_slot_payload_attributes(seed: dict[str, Any], head: dict[str, Any]) -> 
     return attrs
 
 
+def latest_head_agreement(
+    endpoints: list[dict[str, Any]],
+    rpc: RpcCall = rpc_call,
+) -> dict[str, Any]:
+    heads = {
+        e["client_id"]: rpc(e["rpc"], "eth_getBlockByNumber", ["latest", False])
+        for e in endpoints
+    }
+    client_heads = {
+        cid: {"number": int(head["number"], 16), "hash": head["hash"]}
+        for cid, head in heads.items()
+    }
+    hashes = {item["hash"] for item in client_heads.values()}
+    return {"agree": len(hashes) == 1, "heads": heads, "client_heads": client_heads}
+
+
 def build_shared_payload_spec(
     endpoints: list[dict[str, Any]],
     seed_attrs: dict[str, Any] | None = None,
     rpc: RpcCall = rpc_call,
 ) -> dict[str, Any]:
-    """Build a fresh payload spec on a head that ALL clients share.
+    """Build a fresh payload spec only when all clients share the latest head.
 
     This is what turns the smoke probe into a fair (bounty-grade) differential: every
     client is told the same parent head and the same next-slot payload attributes, so
-    they all build the *same* block and their BALs are directly comparable. It also
-    fixes the "stale fixed spec" problem where a client refuses to build on an old head.
+    they all build the *same* block and their BALs are directly comparable.
 
-    Returns `shared_head` (number / hash / agree / per-client hashes), plus a
-    `forkchoice_state` and `payload_attributes` ready for collect_bals().
+    The Engine API path needs the current head, not merely an agreed historical
+    ancestor: some clients reject building on an older parent after their forkchoice
+    has advanced.
+
+    Returns `shared_head` (agree / per-client heads), plus a `forkchoice_state` and
+    `payload_attributes` ready for collect_bals(). If `agree` is false, the caller
+    should not run a same-head differential yet.
     """
     seed = dict(seed_attrs or {})
-    heads = {e["client_id"]: rpc(e["rpc"], "eth_getBlockByNumber", ["latest", False]) for e in endpoints}
-
-    # Highest block number every client definitely has (avoids building on a head a
-    # lagging client hasn't imported yet).
-    common_number = min(int(h["number"], 16) for h in heads.values())
-    by_client = {
-        e["client_id"]: rpc(e["rpc"], "eth_getBlockByNumber", [hex(common_number), False])
-        for e in endpoints
-    }
-    client_hashes = {cid: b["hash"] for cid, b in by_client.items()}
-    shared = by_client[endpoints[0]["client_id"]]
+    agreement = latest_head_agreement(endpoints, rpc=rpc)
+    first_client = endpoints[0]["client_id"]
+    shared = agreement["heads"][first_client]
 
     return {
         "shared_head": {
-            "number": common_number,
+            "number": int(shared["number"], 16),
             "hash": shared["hash"],
-            "agree": len(set(client_hashes.values())) == 1,
-            "client_hashes": client_hashes,
+            "agree": agreement["agree"],
+            "client_heads": agreement["client_heads"],
         },
         "forkchoice_state": {
             "headBlockHash": shared["hash"],
@@ -88,6 +101,22 @@ def build_shared_payload_spec(
         },
         "payload_attributes": next_slot_payload_attributes(seed, shared),
     }
+
+
+def wait_for_shared_payload_spec(
+    endpoints: list[dict[str, Any]],
+    seed_attrs: dict[str, Any] | None = None,
+    timeout_seconds: float = 0,
+    poll_seconds: float = 2,
+    rpc: RpcCall = rpc_call,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + max(timeout_seconds, 0)
+    while True:
+        spec = build_shared_payload_spec(endpoints, seed_attrs=seed_attrs, rpc=rpc)
+        if spec["shared_head"]["agree"] or time.monotonic() >= deadline:
+            return spec
+        sleeper(max(poll_seconds, 0))
 
 
 def smoke_probe_current_heads(
