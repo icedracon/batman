@@ -15,6 +15,8 @@ client-team testing.
   split-devnet safety flags.
 - Expanded the offline BAL corpus beyond ordering mutations to duplicates, read/write
   overlap, malformed RLP shapes, and uint boundary failures.
+- Promoted `BAL_MIXED_READ_WRITE_ALIAS` into Phase 1 as a decoded-BAL detector with
+  synthetic fixture coverage and provenance-gated severity.
 - Added unit tests and CI smoke checks for the new reviewer-facing workflow.
 
 ## Near term
@@ -34,7 +36,6 @@ client-team testing.
 
 ## Later
 
-- Investigate BAL read/write aliasing detectors.
 - Add broader CL+EL orchestration only when the devnet layer is stable enough to make
   same-head 4-way differential runs repeatable.
 - Explore ePBS-adjacent checks as separate modules, not as unverified claims in the

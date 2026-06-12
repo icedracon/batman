@@ -1,79 +1,87 @@
-# Batman — Architecture (authoritative)
+# Batman - Architecture (authoritative)
 
 > This is the authoritative architecture for Batman. It describes what the current
 > tool actually is, what it does, and which roadmap items are still out of scope.
 
 ## What Batman is
 
-A security detector for Ethereum's **Glamsterdam** upgrade. Phase 1 targets
-**EIP-7928 Block-Level Access Lists (BAL)** via cross-client differential testing:
-build the same block on multiple execution clients, compare their independently
-computed BALs, and localize any divergence to the exact account / storage slot /
-`block_access_index`.
+Batman is a security detector for Ethereum's **Glamsterdam** upgrade. Phase 1
+targets **EIP-7928 Block-Level Access Lists (BAL)** via cross-client differential
+testing: build the same block on multiple execution clients, compare their
+independently computed BALs, and localize divergence to the exact account,
+storage slot, and `block_access_index`.
 
-**Scope honesty.** The broader vision (a consensus-layer ePBS + BAL scanner across
-a full CL×EL matrix) is a multi-engineer effort. This repo deliberately ships the
-one solo-tractable, high-signal wedge first — `BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`,
-which the original sketch itself called the "best pure-EL, differential-test-friendly"
-detector. Everything beyond that is roadmap, not a commitment.
+**Scope honesty.** The broader vision, including consensus-layer ePBS checks and
+a full CL/EL matrix, is a multi-engineer effort. This repo deliberately ships two
+solo-tractable, high-signal decoded-BAL detectors first:
+`BAL_SYSTEM_CONTRACT_INDEX_CONFUSION` and `BAL_MIXED_READ_WRITE_ALIAS`.
+Everything beyond decoded-BAL EL-side checks remains roadmap, not a commitment.
 
 ## Why BAL differential is worth a detector
 
-EIP-7928 makes every block carry a BAL — the complete set of accounts/slots touched
-with their post-values — committed via `block_access_list_hash` and exchanged over
-`engine_newPayloadV5`. A conforming BAL must be **canonical** (strict ordering +
-uniqueness) and **identical** across clients. Two concrete break modes:
+EIP-7928 makes every block carry a BAL: the complete set of accounts and slots
+touched with their post-values, committed via `block_access_list_hash` and
+exchanged over the Engine API. A conforming BAL must be canonical and identical
+across clients. Three concrete Phase-1 break modes are covered:
 
-1. **Canonicalization** — a client orders or dedupes differently → different bytes →
-   different hash → a header/consensus split.
-2. **Index confusion** — the `block_access_index` phases (`0` pre-exec system,
-   `1..n` transactions, `n+1` post-exec system) can be merged or misassigned when the
-   same account/slot is touched across phases.
+1. **Canonicalization** - a client orders or dedupes differently, producing
+   different bytes and therefore a different hash.
+2. **Index confusion** - the `block_access_index` phases (`0` pre-exec system,
+   `1..n` transactions, `n+1` post-exec system) can be merged or misassigned
+   when the same account/slot is touched across phases.
+3. **Mixed read/write aliasing** - the same account/storage slot appears in both
+   `storage_reads` and `storage_changes`, creating ambiguity over read-vs-post-write
+   BAL classification across pre-exec, transaction, and post-exec phases.
 
-Both are spec-grounded and testable on a **single block** — no live consensus needed,
-which is exactly why a solo researcher can attack them.
+These are spec-grounded and testable on a single block. Synthetic controls prove
+detector behavior, but live/private-devnet outputs are required before any real
+client finding is treated as bounty-grade.
 
 ## Components
 
-```
+```text
               EIP-7928 spec (pinned in manifests / spec_refs)
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
+                              |
+        +---------------------+---------------------+
+        v                     v                     v
    bal/ (offline engine)  harness/ (live)      devnet/ (infra)
      model.py    RLP        engine_client.py     glamsterdam-devnet.yaml
      codec.py    hash       (JWT + JSON-RPC)     (Kurtosis, gloas_fork_epoch=0)
-     canonical.py order     runner.py            endpoints.sh → endpoints.json
-     differential.py diff   (getPayloadV6→BAL)
+     canonical.py order     runner.py            endpoints.sh -> endpoints.json
+     differential.py diff   (getPayloadV6 -> BAL)
      fixtures.py  gen       config.py
-        │                     │
-        └──────────┬──────────┘
-                   ▼
-   detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION
-                   ▼
+        |                     |
+        +----------+----------+
+                   v
+   detectors/
+     BAL_SYSTEM_CONTRACT_INDEX_CONFUSION
+     BAL_MIXED_READ_WRITE_ALIAS
+                   v
    findings (severity, localized evidence, spec_refs, rule_refs)
-                   ▼
-   cli.py  /  reporting.py (private first-scan report)
+                   v
+   cli.py / reporting.py (private first-scan report)
 ```
 
 ## Live data flow
 
 For each EL Engine API endpoint:
 
-1. `engine_forkchoiceUpdatedV3(head, payloadAttributes)` → `payloadId`
-2. `engine_getPayloadV6(payloadId)` → `ExecutionPayloadV4` (carries `blockAccessList`)
-3. decode the BAL bytes → check canonical form → recompute `keccak(bytes)` and compare
-   to the header `block_access_list_hash`
-4. **cross-client**: a structural diff localizes any split to the exact slot/index
+1. `engine_forkchoiceUpdatedV3/V4(head, payloadAttributes)` returns a `payloadId`.
+2. `engine_getPayloadV6(payloadId)` returns an execution payload carrying `blockAccessList`.
+3. Batman decodes BAL bytes, checks canonical form, recomputes `keccak(bytes)`, and
+   compares it to any declared/header BAL hash.
+4. Cross-client structural diff localizes splits to the account, slot, index, or category.
+5. Phase-1 detectors inspect the decoded BAL for index-confusion and mixed read/write
+   alias shapes.
 
-The transport is injectable, so this whole path is unit-tested offline with a mock
-Engine API; against a live devnet it speaks real JWT-authed JSON-RPC.
+The transport is injectable, so the path is unit-tested offline with a mock Engine API.
+Against a live devnet it speaks real JWT-authenticated JSON-RPC.
 
-## EIP-7928 ground truth (the pin)
+## EIP-7928 ground truth
 
-RLP (not SSZ):
+RLP, not SSZ:
 
-```
+```text
 AccountChanges  = [address, storage_changes, storage_reads,
                    balance_changes, nonce_changes, code_changes]
 BlockAccessList = List[AccountChanges]
@@ -89,14 +97,14 @@ pinned EIP-7928 form should be treated as normative.
 
 ## Implemented vs pending
 
-| | Status |
+| Area | Status |
 |---|---|
-| `bal/` engine (model, codec, canonical, differential, fixtures) | ✅ implemented, tested |
-| detector on real decoded bytes | ✅ implemented, tested |
-| `harness/` (JWT, Engine client, runner, CLI `bal-diff-live`) | ✅ implemented, mock-tested |
-| `devnet/` Kurtosis config + endpoint extraction | ✅ written, YAML validated |
-| **live smoke on a real Gloas devnet** | ✅ 4 configured ELs returned BAL bytes |
-| **live same-head differential** | ✅ 3-way geth/reth/nethermind pass; 4-way blocked by current erigon/devnet split |
+| `bal/` engine (model, codec, canonical, differential, fixtures) | implemented, tested |
+| decoded-BAL Phase-1 detectors | 2 implemented, tested |
+| `harness/` (JWT, Engine client, runner, CLI `bal-diff-live`) | implemented, mock-tested |
+| `devnet/` Kurtosis config + endpoint extraction | written, YAML validated |
+| live smoke on a real Gloas devnet | 4 configured ELs returned BAL bytes |
+| live same-head differential | 3-way geth/reth/nethermind pass; 4-way blocked by current erigon/devnet split |
 
 Current committed live evidence shows geth, erigon, reth, and nethermind all returning
 `blockAccessList` bytes in the smoke path. The stricter 4-way differential is correctly
@@ -107,23 +115,22 @@ same-head pass with 0 findings, not a full 4-way bounty claim.
 ## Spec pinning
 
 Gloas / EIP-7928 is a moving draft. Every trace and finding carries `spec_refs`, and a
-ruleset manifest pins the rules a run targeted. Pin exact client **image digests** and
-the **spec commit** in every run so results stay reproducible as the spec changes.
+ruleset manifest pins the rules a run targeted. Pin exact client image digests and the
+spec commit in every run so results stay reproducible as the spec changes.
 
 ## Safety / disclosure
 
-Local/private devnets only — never mainnet, public RPCs, or third-party infra.
-Suspected client bugs go through **private disclosure** before any public mention.
-Synthetic fixtures are controls: they can prove Batman localizes a bug class, but
-they are never bounty-grade evidence until reproduced against live client builds.
+Local/private devnets only. Do not test mainnet, public RPC providers, or third-party
+infrastructure. Suspected client bugs go through private disclosure before any public
+mention. Synthetic fixtures are controls: they can prove Batman localizes a bug class,
+but they are never bounty-grade evidence until reproduced against live client builds.
 
 ## Roadmap
 
-- **Phase 1 (this repo):** `BAL_SYSTEM_CONTRACT_INDEX_CONFUSION` + harness + devnet.
-- **Next, still solo-tractable (EL-side):** `BAL_MIXED_READ_WRITE_ALIAS`
-  (reads-vs-changes classification), a BAL canonicalization fuzzer (mutate
-  orderings/encodings and assert clients converge).
-- **Later, multi-person (from the original sketch):** ePBS detectors — parent-status
-  drift, absent-vs-negative PTC collapse, pending-payment epoch shadow — and BAL
-  post-state contamination. These need a full CL+EL devnet with internal
-  instrumentation, and are treated as vision, not commitments.
+- **Phase 1 (this repo):** `BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`,
+  `BAL_MIXED_READ_WRITE_ALIAS`, harness, devnet, compatibility snapshots, and
+  offline BAL canonicalization/malformed corpus checks.
+- **Next, still solo-tractable (EL-side):** fixture minimization and stable corpus
+  IDs for malformed/index/alias cases.
+- **Later, multi-person:** ePBS detectors, parent-status drift, absent-vs-negative
+  PTC collapse, pending-payment epoch shadow, and broader CL+EL instrumentation.

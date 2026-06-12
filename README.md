@@ -44,7 +44,7 @@ Open roadmap issues:
 ## Current status
 
 - MIT-licensed, installable Python package with a `batman` CLI.
-- 49 unit tests and GitHub Actions CI.
+- 54 unit tests and GitHub Actions CI.
 - Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
 - Full 4-way same-head differential is intentionally refused on the current devnet split:
   erigon is at block 8 while geth/reth/nethermind share block 7.
@@ -62,6 +62,10 @@ Open roadmap issues:
   validator, a cross-client structural differ, fixture generators, and an offline fuzzer.
 - **`batman_detector/detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`** - runs on real decoded
   BAL bytes: per-client canonical + header-hash checks and a structural cross-client diff.
+- **`batman_detector/detectors/BAL_MIXED_READ_WRITE_ALIAS`** - runs on decoded BAL bytes
+  and flags account/storage slots that appear in both `storage_reads` and `storage_changes`.
+  Synthetic fixtures stay medium-severity controls; live/private-devnet evidence can rise
+  to high, but not critical without a real cross-client divergence.
 - **`batman_detector/harness/`** - JWT-authed Engine API client + runner that drives
   `engine_getPayloadV6` on each EL and feeds the returned BAL into the engine. Mock-tested
   offline; talks real JSON-RPC against a devnet.
@@ -73,7 +77,7 @@ Open roadmap issues:
 - **`devnet/`** - a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-49 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
+54 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
 full mutator coverage for the offline canonicalization campaign, malformed BAL corpus checks,
 compatibility snapshot validation, and evidence-bundle safety checks.
 
@@ -92,6 +96,7 @@ python -m unittest discover
 # This is synthetic control data, not a bounty-grade live-client finding.
 python -m batman_detector.bal.fixtures > examples\traces\bal_system_index_confusion.generated.json
 python -m batman_detector run examples\traces\bal_system_index_confusion.generated.json
+python -m batman_detector run examples\traces\bal_mixed_read_write_alias.sample.json
 
 # Schema validation / detector listing / pre-scan
 python -m batman_detector validate examples\traces\bal_system_index_confusion.generated.json

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - second Phase-1 BAL detector
+
+- Added `BAL_MIXED_READ_WRITE_ALIAS`, a decoded-BAL detector for slots present in
+  both `storage_reads` and `storage_changes` for the same account.
+- Added a synthetic alias fixture and tests proving the detector fires on aliasing
+  and stays silent on clean read-only / write-only BALs.
+- Shared detector provenance and raw-BAL extraction helpers across Phase-1 detectors.
+
 ## 0.1.1 - reviewer-facing grant polish
 
 - Added a deterministic offline BAL canonicalization fuzzer covering account ordering,

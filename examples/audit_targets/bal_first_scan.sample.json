@@ -1,13 +1,14 @@
 {
   "schema_version": "batman.audit_target.v1",
   "target_id": "audit-target-bal-first-scan",
-  "name": "EIP-7928 BAL system-contract index first scan",
+  "name": "EIP-7928 BAL phase and alias first scan",
   "target_type": "fixture",
   "scope": {
-    "description": "Pre-deployment scan for BAL canonicalization mismatches around system-contract and transaction phase indices.",
+    "description": "Pre-deployment scan for BAL canonicalization mismatches around system-contract phases, transaction indices, and mixed read/write aliasing.",
     "in_scope": [
       "EIP-7928 BAL encoding",
       "block_access_index boundary behavior",
+      "mixed read/write storage slot aliasing",
       "cross-client BAL hash equivalence",
       "cross-client payload status equivalence"
     ],
@@ -34,12 +35,20 @@
       "review_date": "2026-06-11"
     }
   ],
-  "detector_ids": ["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
+  "detector_ids": [
+    "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION",
+    "BAL_MIXED_READ_WRITE_ALIAS"
+  ],
   "files": [
     {
       "path": "../traces/bal_system_index_confusion.sample.json",
       "kind": "trace",
       "description": "Synthetic seed trace for BAL phase overlap."
+    },
+    {
+      "path": "../traces/bal_mixed_read_write_alias.sample.json",
+      "kind": "trace",
+      "description": "Synthetic seed trace for mixed read/write storage slot aliasing."
     }
   ],
   "fuzz_campaigns": ["../fuzz_campaigns/bal_index_confusion.sample.json"],

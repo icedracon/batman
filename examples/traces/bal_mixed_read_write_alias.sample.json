@@ -1,0 +1,76 @@
+{
+  "schema_version": "batman.trace.v1",
+  "trace_id": "trace-bal-mixed-read-write-alias-sample-001",
+  "created_at": "2026-06-13T00:00:00Z",
+  "target": {
+    "fork": "Glamsterdam",
+    "eips": ["EIP-7928"],
+    "spec_refs": [
+      {
+        "name": "EIP-7928 Block-Level Access Lists",
+        "url": "https://eips.ethereum.org/EIPS/eip-7928",
+        "commit": "draft-as-of-2026-06-11"
+      }
+    ]
+  },
+  "environment": {
+    "topology": "synthetic-control",
+    "clients": [
+      {
+        "id": "synthetic-geth",
+        "layer": "EL",
+        "name": "synthetic"
+      }
+    ]
+  },
+  "scenario": {
+    "detector_ids": ["BAL_MIXED_READ_WRITE_ALIAS"],
+    "description": "Synthetic control where the same account/storage slot appears in storage_reads and storage_changes.",
+    "success_condition": "Detector reports the mixed read/write alias without treating synthetic evidence as a critical live-client finding."
+  },
+  "provenance": {
+    "kind": "synthetic_fixture",
+    "bounty_eligible": false,
+    "description": "Control fixture for detector behavior. Not evidence of a real client bug until replaced by live client outputs.",
+    "captured_at": "2026-06-13T00:00:00Z",
+    "operator": "batman_detector"
+  },
+  "block": {
+    "number": 0,
+    "transaction_count": 1,
+    "block_access_list_hash": "0x522afe91a631d8f4b0e62fccd661fe4c851bee6b6066677fca186c195957e8d0"
+  },
+  "events": [
+    {
+      "event_id": "bal-alias-read-001",
+      "kind": "bal_access",
+      "phase": "transaction",
+      "block_access_index": 1,
+      "account": "0x00000000000000000000000000000000000010aa",
+      "storage_slot": "0x7",
+      "access_type": "read",
+      "notes": "Synthetic transaction-phase read of the aliased slot."
+    },
+    {
+      "event_id": "bal-alias-write-001",
+      "kind": "bal_access",
+      "phase": "post_execution",
+      "block_access_index": 2,
+      "account": "0x00000000000000000000000000000000000010aa",
+      "storage_slot": "0x7",
+      "access_type": "write",
+      "value_after": "0x3",
+      "notes": "Synthetic post-execution write to the same slot."
+    }
+  ],
+  "observations": [
+    {
+      "kind": "bal_output",
+      "client_id": "synthetic-geth",
+      "status": "VALID",
+      "bal_hash": "0x522afe91a631d8f4b0e62fccd661fe4c851bee6b6066677fca186c195957e8d0",
+      "bal_rlp": "0xe8e79400000000000000000000000000000000000010aacccb07c9c28001c20102c20203c107c0c0c0",
+      "notes": "Slot 0x7 is listed as both a storage read and storage change for the same account."
+    }
+  ]
+}

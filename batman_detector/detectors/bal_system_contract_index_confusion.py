@@ -4,11 +4,13 @@ from collections import defaultdict
 from typing import Any
 
 from .base import Detector, Finding
+from .common import (
+    evidence_level as _evidence_level,
+    extract_client_bals,
+    rule_refs as _rule_refs,
+    spec_refs as _spec_refs,
+)
 from ..bal.differential import cross_client
-
-# Provenance kinds that count as real client evidence (and may escalate a
-# cross-client divergence to critical). Everything else is a control/import.
-LIVE_PROVENANCE_KINDS = {"live_devnet", "live_client", "private_devnet"}
 
 
 class BalSystemContractIndexConfusionDetector(Detector):
@@ -80,7 +82,7 @@ class BalSystemContractIndexConfusionDetector(Detector):
 
         # When real BAL bytes are attached, the real-bytes path below supersedes
         # the legacy hash-only mismatch check (avoid double-reporting one split).
-        raw_by_client, declared_by_client, header_hash = _extract_client_bals(trace)
+        raw_by_client, declared_by_client, header_hash = extract_client_bals(trace)
 
         mismatch = None if raw_by_client else _find_client_bal_mismatch(trace.get("observations", []))
         if mismatch:
@@ -222,36 +224,6 @@ class BalSystemContractIndexConfusionDetector(Detector):
         return findings
 
 
-def _spec_refs(trace: dict[str, Any]) -> list[str]:
-    refs = []
-    for ref in trace.get("target", {}).get("spec_refs", []):
-        if isinstance(ref, dict):
-            name = ref.get("name", "spec")
-            url = ref.get("url", "")
-            commit = ref.get("commit", "")
-            refs.append(" ".join(part for part in [name, url, commit] if part))
-    return refs
-
-
-def _evidence_level(trace: dict[str, Any]) -> str:
-    provenance = trace.get("provenance", {})
-    if not isinstance(provenance, dict):
-        return "unknown"
-    if provenance.get("kind") in LIVE_PROVENANCE_KINDS:
-        return "live"
-    return "synthetic"
-
-
-def _rule_refs(ruleset: dict[str, Any] | None, detector_id: str) -> list[str]:
-    if not ruleset:
-        return []
-    refs = []
-    for rule in ruleset.get("rules", []):
-        if rule.get("detector_id") == detector_id:
-            refs.append(rule.get("rule_id", "unknown-rule"))
-    return refs
-
-
 def _find_phase_index_errors(events: list[dict[str, Any]], tx_count: int) -> list[str]:
     evidence = []
     post_index = tx_count + 1
@@ -324,26 +296,3 @@ def _find_client_bal_mismatch(observations: list[dict[str, Any]]) -> dict[str, A
         "affected_clients": sorted(status_by_client),
         "evidence": evidence,
     }
-
-
-def _extract_client_bals(
-    trace: dict[str, Any],
-) -> tuple[dict[str, bytes], dict[str, str], str | None]:
-    """Pull real BAL bytes out of `bal_output` observations that carry `bal_rlp`."""
-    raw_by_client: dict[str, bytes] = {}
-    declared_by_client: dict[str, str] = {}
-    for obs in trace.get("observations", []):
-        if not isinstance(obs, dict) or obs.get("kind") != "bal_output":
-            continue
-        rlp_hex = obs.get("bal_rlp")
-        client_id = obs.get("client_id", "<unknown>")
-        if not isinstance(rlp_hex, str) or not rlp_hex:
-            continue
-        try:
-            raw_by_client[client_id] = bytes.fromhex(rlp_hex[2:] if rlp_hex.startswith("0x") else rlp_hex)
-        except ValueError:
-            continue
-        if obs.get("bal_hash"):
-            declared_by_client[client_id] = obs["bal_hash"]
-    header_hash = trace.get("block", {}).get("block_access_list_hash")
-    return raw_by_client, declared_by_client, header_hash

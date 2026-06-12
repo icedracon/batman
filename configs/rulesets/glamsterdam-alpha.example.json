@@ -30,7 +30,13 @@
       "description": "The same account/storage key touched across system and transaction phases is a priority fixture for client canonicalization differential testing.",
       "severity_if_cross_client_mismatch": "high",
       "feature_flag": "eip7928"
+    },
+    {
+      "rule_id": "BAL-ALIAS-001",
+      "detector_id": "BAL_MIXED_READ_WRITE_ALIAS",
+      "description": "A storage slot must not appear as both a pure storage read and a storage change for the same account in decoded BAL bytes.",
+      "severity_if_cross_client_mismatch": "high",
+      "feature_flag": "eip7928"
     }
   ]
 }
-

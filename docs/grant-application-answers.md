@@ -41,7 +41,7 @@ Report", and docs for client teams / auditors / indexers.
 Working prototype, not just an idea: spec-anchored EIP-7928 RLP engine (a test asserts the
 spec's empty-BAL hash constant), canonical validator, cross-client structural differ, JWT
 Engine API harness, one-command Kurtosis 4-EL devnet (geth/erigon/reth/nethermind +
-lighthouse), provenance-gated severity, 49 unit tests + CI.
+lighthouse), provenance-gated severity, 54 unit tests + CI.
 
 Live-validated on a running 4-client Glamsterdam (Gloas) devnet: the smoke probe returns
 BAL bytes from geth, erigon, reth, and nethermind. The strict `bal-diff-live --refresh`
