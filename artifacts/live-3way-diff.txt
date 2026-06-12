@@ -1,0 +1,6 @@
+shared head: #7 0xd944279b3d2755895f817cd1a6c9386e49c8047bb7f987a9c53c6c34e067ad71 (all clients agree: True)
+WROTE trace: artifacts\subset-live-trace.json
+WROTE report: artifacts\subset-live-report.md
+clients queried: ['el-1-geth-lighthouse', 'el-3-reth-lighthouse', 'el-4-nethermind-lighthouse']
+clients returning a BAL: ['el-1-geth-lighthouse', 'el-3-reth-lighthouse', 'el-4-nethermind-lighthouse']
+findings: 0
