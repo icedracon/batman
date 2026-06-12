@@ -47,31 +47,31 @@
     {
       "layer": "EL",
       "name": "geth",
-      "version": "placeholder",
+      "version": "unknown",
       "commit": "replace-with-real-commit"
     },
     {
       "layer": "EL",
       "name": "reth",
-      "version": "placeholder",
+      "version": "unknown",
       "commit": "replace-with-real-commit"
     },
     {
       "layer": "EL",
       "name": "nethermind",
-      "version": "placeholder",
+      "version": "unknown",
       "commit": "replace-with-real-commit"
     },
     {
       "layer": "EL",
       "name": "erigon",
-      "version": "placeholder",
+      "version": "unknown",
       "commit": "replace-with-real-commit"
     },
     {
       "layer": "EL",
       "name": "besu",
-      "version": "placeholder",
+      "version": "unknown",
       "commit": "replace-with-real-commit"
     }
   ],
@@ -86,4 +86,3 @@
     "requires_reproducible_report": true
   }
 }
-

@@ -1,9 +1,7 @@
 # Batman — Architecture (authoritative)
 
-> This document supersedes `docs/Batman Detector Architecture for Glamsterdam.pdf`,
-> which was an early ChatGPT-generated brainstorm (it scoped a 6–9 FTE consensus-wide
-> program and listed scripts that were never written). What follows describes what
-> Batman **actually is and does**.
+> This is the authoritative architecture for Batman. It describes what the current
+> tool actually is, what it does, and which roadmap items are still out of scope.
 
 ## What Batman is
 

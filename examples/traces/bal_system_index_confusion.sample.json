@@ -20,14 +20,14 @@
         "id": "geth-fixture",
         "layer": "EL",
         "name": "geth",
-        "version": "placeholder",
+        "version": "unknown",
         "commit": "replace-with-real-commit"
       },
       {
         "id": "reth-fixture",
         "layer": "EL",
         "name": "reth",
-        "version": "placeholder",
+        "version": "unknown",
         "commit": "replace-with-real-commit"
       }
     ]
@@ -104,4 +104,3 @@
     }
   ]
 }
-

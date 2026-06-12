@@ -6,7 +6,6 @@ multiple execution clients, compares their independently computed BALs, and loca
 divergence to the exact account / storage slot / `block_access_index`.
 
 Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (authoritative).
-The PDF in `docs/` is an early ChatGPT brainstorm and is **superseded** by that document.
 
 ## What's real
 
