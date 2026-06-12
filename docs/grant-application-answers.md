@@ -41,16 +41,17 @@ Report", and docs for client teams / auditors / indexers.
 Working prototype, not just an idea: spec-anchored EIP-7928 RLP engine (a test asserts the
 spec's empty-BAL hash constant), canonical validator, cross-client structural differ, JWT
 Engine API harness, one-command Kurtosis 4-EL devnet (geth/erigon/reth/nethermind +
-lighthouse), provenance-gated severity, 40 unit tests + CI.
+lighthouse), provenance-gated severity, 43 unit tests + CI.
 
-Live-validated on a running 4-client Glamsterdam (Gloas) devnet: all four clients synced on
-canonical history, and `bal-diff-live --refresh` built the next block on a shared head and
-produced a **byte-identical BAL across geth/reth/nethermind — a repeatable 3-way conformance
-pass (8/8 runs, 0 findings)**. erigon ran one block ahead and so did not share the
-build-tip. The harness also surfaced a concrete readiness insight: the minimal devnet
-**halts at the ePBS/Gloas fork boundary (~block 8) without a builder** — sustained
-post-Gloas block production requires a builder component. Both are exactly the kinds of
-pre-mainnet signals this tool is built to produce.
+Live-validated on a running 4-client Glamsterdam (Gloas) devnet: the smoke probe returns
+BAL bytes from geth, erigon, reth, and nethermind. The strict `bal-diff-live --refresh`
+path currently blocks a full 4-way same-head differential because the devnet is split at
+the ePBS/Gloas boundary: geth/reth/nethermind share block 7 while erigon is one block
+ahead at block 8. With the erigon outlier explicitly excluded, Batman produced a
+**byte-identical BAL across geth/reth/nethermind — a repeatable 3-way same-head
+conformance pass (0 findings)** and wrote reproducible JSON/Markdown evidence under
+`artifacts/`. The 4-way refusal is intentional: the harness will not produce a weak
+claim when latest heads disagree.
 
 ## Success metrics
 # ELs covered (≥4); # devnet blocks/BALs decoded & diffed; # public fixtures + mutation

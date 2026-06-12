@@ -1,0 +1,71 @@
+{
+  "block": {
+    "number": 0,
+    "transaction_count": 0
+  },
+  "created_at": "2026-06-12T11:14:29.429733+00:00",
+  "environment": {
+    "clients": [
+      {
+        "id": "el-1-geth-lighthouse",
+        "layer": "EL",
+        "name": "el-1-geth-lighthouse"
+      },
+      {
+        "id": "el-3-reth-lighthouse",
+        "layer": "EL",
+        "name": "el-3-reth-lighthouse"
+      },
+      {
+        "id": "el-4-nethermind-lighthouse",
+        "layer": "EL",
+        "name": "el-4-nethermind-lighthouse"
+      }
+    ],
+    "topology": "live kurtosis devnet"
+  },
+  "events": [],
+  "observations": [
+    {
+      "bal_rlp": "0xf8d0de9400000961ef480eb55e80d19ad83579a64c007002c0c480010203c0c0c0de940000bbddc7ce488642fb579f8b00f3a590007251c0c480010203c0c0c0f840940000f90827f1c53a10cb7a02335b175320002935e6e507e3e280a0a4beb74578fa84ae3029ab697df0f8071e394e035831beb848eddbeae3d2e14bc0c0c0c0f84e94000f3df6d732807ef1319fb7b8bb8522d0beac02f4cb82112ac7c680846a2bdfb1e7823129e3e280a00a95657ddb9b7c84fda9af160f13a2ad5c0d582f956990fc144d9999c16fb9efc0c0c0c0",
+      "client_id": "el-1-geth-lighthouse",
+      "kind": "bal_output"
+    },
+    {
+      "bal_rlp": "0xf8d0de9400000961ef480eb55e80d19ad83579a64c007002c0c480010203c0c0c0de940000bbddc7ce488642fb579f8b00f3a590007251c0c480010203c0c0c0f840940000f90827f1c53a10cb7a02335b175320002935e6e507e3e280a0a4beb74578fa84ae3029ab697df0f8071e394e035831beb848eddbeae3d2e14bc0c0c0c0f84e94000f3df6d732807ef1319fb7b8bb8522d0beac02f4cb82112ac7c680846a2bdfb1e7823129e3e280a00a95657ddb9b7c84fda9af160f13a2ad5c0d582f956990fc144d9999c16fb9efc0c0c0c0",
+      "client_id": "el-3-reth-lighthouse",
+      "kind": "bal_output"
+    },
+    {
+      "bal_rlp": "0xf8d0de9400000961ef480eb55e80d19ad83579a64c007002c0c480010203c0c0c0de940000bbddc7ce488642fb579f8b00f3a590007251c0c480010203c0c0c0f840940000f90827f1c53a10cb7a02335b175320002935e6e507e3e280a0a4beb74578fa84ae3029ab697df0f8071e394e035831beb848eddbeae3d2e14bc0c0c0c0f84e94000f3df6d732807ef1319fb7b8bb8522d0beac02f4cb82112ac7c680846a2bdfb1e7823129e3e280a00a95657ddb9b7c84fda9af160f13a2ad5c0d582f956990fc144d9999c16fb9efc0c0c0c0",
+      "client_id": "el-4-nethermind-lighthouse",
+      "kind": "bal_output"
+    }
+  ],
+  "provenance": {
+    "bounty_eligible": true,
+    "client_notes": {},
+    "kind": "live_devnet"
+  },
+  "scenario": {
+    "description": "Live Engine API BAL differential across execution clients.",
+    "detector_ids": [
+      "BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"
+    ],
+    "success_condition": "Live clients return comparable blockAccessList bytes for the same payload attributes."
+  },
+  "schema_version": "batman.trace.v1",
+  "target": {
+    "eips": [
+      "EIP-7928"
+    ],
+    "fork": "Glamsterdam",
+    "spec_refs": [
+      {
+        "name": "EIP-7928 Block-Level Access Lists",
+        "url": "https://eips.ethereum.org/EIPS/eip-7928"
+      }
+    ]
+  },
+  "trace_id": "live-20260612T111429Z"
+}

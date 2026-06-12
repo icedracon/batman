@@ -17,7 +17,7 @@ so we can compare each EL's independently-computed BAL for the same block.
   kurtosis version
   ```
   Make sure Docker Desktop has **WSL integration** enabled for that distro
-  (Docker Desktop → Settings → Resources → WSL integration).
+  (Docker Desktop -> Settings -> Resources -> WSL integration).
 
   Run all the commands below from the WSL shell, in this repo's path
   (e.g. `cd /mnt/c/Users/zevs/Documents/Glamsterdam`).
@@ -62,6 +62,9 @@ its BAL bytes. If the helper's parsing doesn't match your package version, fill
 After downloading the Engine API JWT artifact to `devnet/jwt_file/jwtsecret`, run:
 
 ```bash
+python -m batman_detector bal-heads-live \
+  --endpoints devnet/endpoints.json
+
 python -m batman_detector bal-smoke-live \
   --endpoints devnet/endpoints.json \
   --jwt-secret devnet/jwt_file/jwtsecret \
@@ -70,6 +73,40 @@ python -m batman_detector bal-smoke-live \
 
 This builds from each client's own current head and checks whether a BAL comes back.
 It is a liveness test, not a same-block differential.
+
+## Same-head differential
+
+Use `--refresh` to build a fresh spec only when every client's latest head agrees:
+
+```bash
+python -m batman_detector bal-diff-live \
+  --endpoints devnet/endpoints.json \
+  --jwt-secret devnet/jwt_file/jwtsecret \
+  --payload-spec devnet/payload-spec.latest.json \
+  --refresh \
+  --wait-shared-head 60
+```
+
+The committed evidence artifact was produced from the current split devnet with the
+erigon outlier excluded:
+
+```bash
+python -m batman_detector bal-diff-live \
+  --endpoints devnet/endpoints.json \
+  --jwt-secret devnet/jwt_file/jwtsecret \
+  --payload-spec devnet/payload-spec.latest.json \
+  --refresh \
+  --wait-shared-head 5 \
+  --poll-interval 1 \
+  --exclude-client el-2-erigon-lighthouse \
+  --output-trace artifacts/subset-live-trace.json \
+  --output-report artifacts/subset-live-report.md
+```
+
+If clients are at different latest heads, Batman stops instead of producing a weak
+comparison. That is expected on young or unstable devnets; rerun after clients catch up.
+For debugging, `--client` and `--exclude-client` can run a subset, but label those results
+as subset evidence rather than a full cross-client claim.
 
 ## Teardown
 

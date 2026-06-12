@@ -42,13 +42,15 @@ a way to see BAL behavior and impact before mainnet.
   `glamsterdam-devnet-0` images (geth/erigon/reth/nethermind), endpoint extraction.
 - **Provenance-gated severity**: synthetic fixtures are controls and can never reach
   bounty-grade; only live-devnet provenance escalates a divergence to critical.
-- **40 unit tests + GitHub Actions CI.** MIT-licensed.
+- **43 unit tests + GitHub Actions CI.** MIT-licensed.
 
 **Live-validated** against a running 4-EL Kurtosis devnet: the smoke probe returns a
-BAL from all four clients; `bal-diff-live --refresh` produced a **3-way BAL
-conformance pass** (erigon/reth/nethermind agreed on the BAL for a shared parent),
-and the tool correctly surfaced a **cross-client head divergence / under-peered
-devnet** — exactly the readiness signal it is meant to produce.
+BAL from all four clients. The strict `bal-diff-live --refresh` path currently
+blocks a full 4-way differential because the devnet is split at the ePBS/Gloas
+boundary: geth/reth/nethermind share block 7 while erigon is one block ahead at
+block 8. With the erigon outlier explicitly excluded, Batman produced a **3-way
+same-head BAL conformance pass** for geth/reth/nethermind (byte-identical BAL, 0
+findings) and wrote reproducible JSON/Markdown evidence under `artifacts/`.
 
 ## Project structure (8 weeks)
 
@@ -98,5 +100,5 @@ against a fiat-equivalent assumption to absorb ETH/USD volatility.
 
 This is a working prototype, not a finished product; the grant hardens it. A fair
 4-way differential requires a **synced** devnet (the live run showed real
-sync/peering fragility — itself a readiness signal). BAL-over-RPC is currently
+ePBS/Gloas boundary split/stall behavior — itself a readiness signal). BAL-over-RPC is currently
 geth-only, so the uniform extraction path is the Engine API (`getPayloadV6`).
