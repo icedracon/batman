@@ -25,7 +25,8 @@ in the header — so a BAL is **consensus-critical** and must be byte-identical 
 canonical across all execution clients. Two concrete risks: (1) canonicalization
 divergence (a client orders/dedupes differently → different bytes → different hash →
 a split), and (2) `block_access_index` phase confusion (pre-exec `0` / tx `1..n` /
-post-exec `n+1` merged or misassigned). Today there is no focused, open, live
+post-exec `n+1` merged or misassigned), and (3) mixed read/write aliasing where
+the same slot appears in both `storage_reads` and `storage_changes`. Today there is no focused, open, live
 **cross-client BAL conformance** tool, and app developers / indexers / auditors lack
 a way to see BAL behavior and impact before mainnet.
 
@@ -42,7 +43,7 @@ a way to see BAL behavior and impact before mainnet.
   `glamsterdam-devnet-0` images (geth/erigon/reth/nethermind), endpoint extraction.
 - **Provenance-gated severity**: synthetic fixtures are controls and can never reach
   bounty-grade; only live-devnet provenance escalates a divergence to critical.
-- **49 unit tests + GitHub Actions CI.** MIT-licensed.
+- **54 unit tests + GitHub Actions CI.** MIT-licensed.
 
 **Live-validated** against a running 4-EL Kurtosis devnet: the smoke probe returns a
 BAL from all four clients. The strict `bal-diff-live --refresh` path currently
@@ -66,6 +67,19 @@ findings) and wrote reproducible JSON/Markdown evidence under `artifacts/`.
 4. **Weeks 7–8 — Reporting + ecosystem output.** Markdown/JSON reports; public
    example datasets; a "Glamsterdam BAL Readiness Report"; docs for client teams,
    auditors, and indexers.
+
+## Milestones (proposed, applicant-confirmable dates)
+
+Dates below are proposed planning anchors as of **2026-06-13** and should be
+confirmed by the applicant before submission. They assume Glamsterdam mainnet timing
+around late August 2026 and will be adjusted if devnet or fork scheduling changes.
+
+| Milestone | Proposed date | Verifiable deliverable |
+|---|---:|---|
+| **M1: Stable live differential evidence** | **2026-07-07** | A stable 4-way same-head live BAL differential including geth/erigon/reth/nethermind, or a documented infra blocker plus N-block 3-way conformance artifacts, compatibility snapshot, and public-safe evidence bundle. |
+| **M2: Second Phase-1 detector complete** | **2026-07-17** | `BAL_MIXED_READ_WRITE_ALIAS` registered, documented, and tested against decoded BAL bytes, with synthetic alias and clean read-only/write-only fixtures proving fire/silent behavior. |
+| **M3: Stable fixture corpus** | **2026-08-07** | The existing canonicalization/index fuzzer hardened into a committed fixture corpus with stable IDs, expected validation results, and CI coverage. |
+| **M4: Pre-mainnet readiness report** | **2026-08-24** | Public **Glamsterdam BAL Readiness Report** summarizing findings, client responses, or documented clean-conformance results; absence of findings is valid if backed by reproducible artifacts. |
 
 ## Success metrics (quantitative)
 
