@@ -14,6 +14,32 @@ Roadmap: **[ROADMAP.md](ROADMAP.md)**.
 Compatibility matrix: **[docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)**.
 Public evidence workflow: **[docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)**.
 
+## Demo
+
+![Batman private-devnet BAL workflow demo](docs/assets/batman-demo.svg)
+
+The lightweight animated demo shows the intended reviewer workflow: generate a synthetic
+control, run the offline canonicalization campaign, compare execution clients only on a
+shared private-devnet head, and export an explicitly selected evidence bundle.
+
+## Why this matters for Ethereum clients
+
+EIP-7928 makes BAL output consensus-adjacent data: execution clients must agree on the exact
+canonical bytes and therefore on `block_access_list_hash` for the same block. Small differences
+in ordering, duplicate handling, read/write classification, or `block_access_index` assignment
+can become cross-client interoperability failures.
+
+Batman focuses on that narrow, high-signal surface. It gives client teams and protocol
+researchers a reproducible private-devnet workflow that catches disagreement early, refuses
+misleading comparisons when heads do not align, and preserves compact evidence for responsible
+private disclosure. More detail: **[docs/WHY_THIS_MATTERS.md](docs/WHY_THIS_MATTERS.md)**.
+
+Open roadmap issues:
+
+- [#2 — machine-readable client compatibility snapshots](https://github.com/icedracon/batman/issues/2)
+- [#3 — compact BAL divergence reproducers](https://github.com/icedracon/batman/issues/3)
+- [#4 — malformed BAL encoding corpus expansion](https://github.com/icedracon/batman/issues/4)
+
 ## Current status
 
 - MIT-licensed, installable Python package with a `batman` CLI.
@@ -173,6 +199,8 @@ Current committed live evidence:
 - Release notes: [CHANGELOG.md](CHANGELOG.md)
 - Compatibility matrix: [docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)
 - Public evidence workflow: [docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)
+- Why this matters: [docs/WHY_THIS_MATTERS.md](docs/WHY_THIS_MATTERS.md)
+- Open roadmap work: [docs/ROADMAP_ISSUES.md](docs/ROADMAP_ISSUES.md)
 
 ## Bounty / disclosure safety
 
