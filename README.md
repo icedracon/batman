@@ -1,11 +1,25 @@
 # Batman - Glamsterdam BAL detector
 
+[![CI](https://github.com/icedracon/batman/actions/workflows/ci.yml/badge.svg)](https://github.com/icedracon/batman/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Batman is a reproducible cross-client detector for Ethereum's **Glamsterdam** upgrade.
 Phase 1 targets **EIP-7928 Block-Level Access Lists (BAL)**: it builds the same block on
 multiple execution clients, compares their independently computed BALs, and localizes any
 divergence to the exact account / storage slot / `block_access_index`.
 
 Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (authoritative).
+Roadmap: **[ROADMAP.md](ROADMAP.md)**.
+
+## Current status
+
+- MIT-licensed, installable Python package with a `batman` CLI.
+- 43 unit tests and GitHub Actions CI.
+- Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
+- Full 4-way same-head differential is intentionally refused on the current devnet split:
+  erigon is at block 8 while geth/reth/nethermind share block 7.
+- A scoped 3-way same-head differential for geth/reth/nethermind passes with 0 findings.
 
 ## What's real
 
@@ -23,6 +37,11 @@ Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (author
 43 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
 
 ## Quick Start
+
+```powershell
+python -m pip install -e .
+batman --help
+```
 
 ```powershell
 # Unit tests
@@ -100,9 +119,19 @@ intended client set to share the same latest head.
 
 Current committed live evidence:
 
+- [live-heads.json](artifacts/live-heads.json): latest-head agreement check showing the current 3+1 split.
+- [live-smoke.json](artifacts/live-smoke.json): 4-client smoke result; every configured EL returned BAL bytes.
+- [live-4way-diff.txt](artifacts/live-4way-diff.txt): honest 4-way same-head refusal on the split devnet.
+- [live-3way-diff.txt](artifacts/live-3way-diff.txt): command output for the scoped 3-way same-head pass.
 - [subset-live-trace.json](artifacts/subset-live-trace.json): 3-way same-head BAL trace for geth/reth/nethermind.
 - [subset-live-report.md](artifacts/subset-live-report.md): detector report for that trace, with 0 findings.
 - Full 4-way same-head differential is intentionally blocked on the current devnet because erigon is one block ahead while geth/reth/nethermind share block 7.
+
+## Maintainer notes
+
+- Security and disclosure policy: [SECURITY.md](SECURITY.md)
+- Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Release notes: [CHANGELOG.md](CHANGELOG.md)
 
 ## Bounty / disclosure safety
 

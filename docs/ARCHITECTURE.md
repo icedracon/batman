@@ -95,11 +95,14 @@ pinned EIP-7928 form should be treated as normative.
 | detector on real decoded bytes | ✅ implemented, tested |
 | `harness/` (JWT, Engine client, runner, CLI `bal-diff-live`) | ✅ implemented, mock-tested |
 | `devnet/` Kurtosis config + endpoint extraction | ✅ written, YAML validated |
-| **live validation on a real devnet** | ⏳ needs Gloas EL images that emit BALs |
+| **live smoke on a real Gloas devnet** | ✅ 4 configured ELs returned BAL bytes |
+| **live same-head differential** | ✅ 3-way geth/reth/nethermind pass; 4-way blocked by current erigon/devnet split |
 
-**Open empirical question:** which ELs actually emit a `blockAccessList` at the current
-Glamsterdam devnet stage. The harness reports per-client whether a BAL came back, so
-the first live run answers this directly.
+Current committed live evidence shows geth, erigon, reth, and nethermind all returning
+`blockAccessList` bytes in the smoke path. The stricter 4-way differential is correctly
+refused on the current devnet because erigon is one block ahead while geth/reth/nethermind
+share the same latest head. The committed subset evidence is therefore a scoped 3-way
+same-head pass with 0 findings, not a full 4-way bounty claim.
 
 ## Spec pinning
 
