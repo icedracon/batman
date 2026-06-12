@@ -1,4 +1,4 @@
-# Batman — Glamsterdam BAL detector
+# Batman - Glamsterdam BAL detector
 
 Batman is a reproducible cross-client detector for Ethereum's **Glamsterdam** upgrade.
 Phase 1 targets **EIP-7928 Block-Level Access Lists (BAL)**: it builds the same block on
@@ -10,18 +10,18 @@ The PDF in `docs/` is an early ChatGPT brainstorm and is **superseded** by that 
 
 ## What's real
 
-- **`batman_detector/bal/`** — a real EIP-7928 BAL engine: typed RLP model, encode/decode,
+- **`batman_detector/bal/`** - a real EIP-7928 BAL engine: typed RLP model, encode/decode,
   `block_access_list_hash` (anchored to the spec's empty-BAL constant), a canonical-form
   validator, a cross-client structural differ, and fixture generators.
-- **`batman_detector/detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`** — runs on real decoded
+- **`batman_detector/detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`** - runs on real decoded
   BAL bytes: per-client canonical + header-hash checks and a structural cross-client diff.
-- **`batman_detector/harness/`** — JWT-authed Engine API client + runner that drives
+- **`batman_detector/harness/`** - JWT-authed Engine API client + runner that drives
   `engine_getPayloadV6` on each EL and feeds the returned BAL into the engine. Mock-tested
   offline; talks real JSON-RPC against a devnet.
-- **`devnet/`** — a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
+- **`devnet/`** - a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-31 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
+39 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ The PDF in `docs/` is an early ChatGPT brainstorm and is **superseded** by that 
 # Unit tests
 python -m unittest discover
 
-# Generate a real encoded BAL fixture and scan it — no devnet needed.
+# Generate a real encoded BAL fixture and scan it - no devnet needed.
 # This is synthetic control data, not a bounty-grade live-client finding.
 python -m batman_detector.bal.fixtures > examples\traces\bal_system_index_confusion.generated.json
 python -m batman_detector run examples\traces\bal_system_index_confusion.generated.json
@@ -57,14 +57,23 @@ pin current Gloas/EIP-7928 client images). Then:
 
 ```bash
 ./devnet/endpoints.sh batman-gloas                 # -> devnet/endpoints.json
+
+# Smoke test: each EL builds from its own current head and returns BAL bytes.
+python -m batman_detector bal-smoke-live \
+    --endpoints devnet/endpoints.json \
+    --jwt-secret devnet/jwt_file/jwtsecret \
+    --payload-spec devnet/payload-spec.latest.json
+
+# Differential test: compare clients on one forkchoice/payload spec.
 python -m batman_detector bal-diff-live \
     --endpoints devnet/endpoints.json \
-    --jwt-secret <path-to-jwt.hex> \
+    --jwt-secret devnet/jwt_file/jwtsecret \
     --payload-spec <forkchoice+attributes.json>
 ```
 
-The run reports, per client, whether a `blockAccessList` came back — which also answers the
-open question of *which ELs emit BALs* at the current devnet stage.
+The smoke command answers whether each EL can emit `blockAccessList` bytes at all. The
+differential command is stricter: it only becomes bounty-grade when every client builds from
+the same forkchoice and payload attributes.
 
 ## Bounty / disclosure safety
 

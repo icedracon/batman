@@ -58,6 +58,17 @@ class EngineClient:
     def forkchoice_updated_v3(self, forkchoice_state: dict, payload_attributes: dict | None = None) -> Any:
         return self.call("engine_forkchoiceUpdatedV3", [forkchoice_state, payload_attributes])
 
+    def forkchoice_updated_v4(
+        self,
+        forkchoice_state: dict,
+        payload_attributes: dict | None = None,
+        custody_columns: str | None = None,
+    ) -> Any:
+        params = [forkchoice_state, payload_attributes]
+        if custody_columns is not None:
+            params.append(custody_columns)
+        return self.call("engine_forkchoiceUpdatedV4", params)
+
     def get_payload_v6(self, payload_id: str) -> Any:
         return self.call("engine_getPayloadV6", [payload_id])
 

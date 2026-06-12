@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from pathlib import Path
 
 from batman_detector.detectors.bal_system_contract_index_confusion import (
@@ -23,6 +24,12 @@ class BatmanDetectorTests(unittest.TestCase):
         trace = load_json(ROOT / "examples" / "traces" / "bal_system_index_confusion.sample.json")
         warnings = validate_trace(trace)
         self.assertTrue(any("provenance" in warning for warning in warnings))
+
+    def test_load_json_accepts_utf8_bom(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bom.json"
+            path.write_text('{"ok": true}', encoding="utf-8-sig")
+            self.assertEqual(load_json(path), {"ok": True})
 
     def test_ruleset_validates(self):
         ruleset = load_json(ROOT / "configs" / "rulesets" / "glamsterdam-alpha.example.json")

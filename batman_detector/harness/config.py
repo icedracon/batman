@@ -15,6 +15,12 @@ def load_endpoints(path: str | Path) -> list[dict]:
     return data
 
 
+def _http_url(url: str) -> str:
+    if url.startswith(("http://", "https://")):
+        return url
+    return "http://" + url
+
+
 def nodes_from_endpoints(
     endpoints: list[dict],
     jwt_secret: bytes | None = None,
@@ -24,5 +30,7 @@ def nodes_from_endpoints(
     for entry in endpoints:
         client_id = entry["client_id"]
         url = entry.get("engine") or entry.get("rpc")
-        nodes[client_id] = EngineClient(url, jwt_secret=jwt_secret, transport=transport)
+        if not url:
+            raise ValueError(f"endpoint {client_id} has neither engine nor rpc URL")
+        nodes[client_id] = EngineClient(_http_url(url), jwt_secret=jwt_secret, transport=transport)
     return nodes

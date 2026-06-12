@@ -171,12 +171,29 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
-    from .harness import build_live_trace, collect_bals, load_endpoints, load_jwt_secret, nodes_from_endpoints
+    from .harness import (
+        build_live_trace,
+        build_shared_payload_spec,
+        collect_bals,
+        load_endpoints,
+        load_jwt_secret,
+        nodes_from_endpoints,
+    )
 
     endpoints = load_endpoints(Path(args.endpoints))
     jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
     spec = load_json(Path(args.payload_spec))
     nodes = nodes_from_endpoints(endpoints, jwt_secret=jwt_secret)
+
+    # --refresh: rebuild the spec on a head all clients share, so every client builds
+    # the SAME next block (a fair cross-client differential, not a stale fixed spec).
+    if args.refresh:
+        fresh = build_shared_payload_spec(endpoints, seed_attrs=spec.get("payload_attributes", {}))
+        head = fresh["shared_head"]
+        print(f"shared head: #{head['number']} {head['hash']} (all clients agree: {head['agree']})")
+        if not head["agree"]:
+            print(f"  WARNING: clients disagree on block #{head['number']}: {head['client_hashes']}")
+        spec = {**spec, "forkchoice_state": fresh["forkchoice_state"], "payload_attributes": fresh["payload_attributes"]}
 
     # Collect each EL's BAL, wrap it in a live-provenance trace, and run it through
     # the detector so a real cross-client divergence escalates to critical.
@@ -193,6 +210,36 @@ def _cmd_bal_diff_live(args: argparse.Namespace) -> int:
     print(f"findings: {len(findings)}")
     _print_findings(findings)
     return 3 if any(finding.severity in ("critical", "high") for finding in findings) else 0
+
+
+def _cmd_bal_smoke_live(args: argparse.Namespace) -> int:
+    from .harness import load_endpoints, load_jwt_secret, smoke_probe_current_heads
+
+    endpoints = load_endpoints(Path(args.endpoints))
+    jwt_secret = load_jwt_secret(Path(args.jwt_secret)) if args.jwt_secret else None
+    spec = load_json(Path(args.payload_spec))
+    results = smoke_probe_current_heads(
+        endpoints,
+        jwt_secret=jwt_secret,
+        payload_attributes=spec.get("payload_attributes", {}),
+    )
+
+    if args.format == "json":
+        print(json.dumps({"clients": results}, indent=2, sort_keys=True))
+    else:
+        print(f"clients queried: {[item['client_id'] for item in results]}")
+        for item in results:
+            status = "BAL" if item.get("engine_has_bal") else "no BAL"
+            detail = item.get("engine_bal_bytes")
+            suffix = f" ({detail} bytes)" if detail is not None else ""
+            head = item.get("head_number", "<unknown>")
+            print(f"  {item['client_id']}: {status}{suffix}; head={head}; rpc_bal={item.get('rpc_has_bal')}")
+            if item.get("note"):
+                print(f"    note: {item['note']}")
+            if item.get("error"):
+                print(f"    error: {item['error']}")
+
+    return 0 if all(item.get("engine_has_bal") for item in results) else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -241,7 +288,20 @@ def build_parser() -> argparse.ArgumentParser:
     live.add_argument("--jwt-secret", help="path to the Engine API JWT secret (hex)")
     live.add_argument("--payload-spec", required=True,
                       help="JSON with forkchoice_state and payload_attributes")
+    live.add_argument("--refresh", action="store_true",
+                      help="Rebuild the spec on a shared current head so all clients build the same block")
     live.set_defaults(func=_cmd_bal_diff_live)
+
+    smoke = subparsers.add_parser(
+        "bal-smoke-live",
+        help="Check whether each EL can build from its own head and return a BAL",
+    )
+    smoke.add_argument("--endpoints", required=True, help="endpoints.json from devnet/endpoints.sh")
+    smoke.add_argument("--jwt-secret", help="path to the Engine API JWT secret (hex)")
+    smoke.add_argument("--payload-spec", required=True,
+                       help="JSON with payload_attributes used as a seed")
+    smoke.add_argument("--format", choices=["text", "json"], default="text")
+    smoke.set_defaults(func=_cmd_bal_smoke_live)
 
     return parser
 

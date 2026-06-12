@@ -17,7 +17,9 @@ from batman_detector.harness import (
     EngineClient,
     extract_bal_hex,
     make_engine_jwt,
+    next_slot_payload_attributes,
     run_live_differential,
+    smoke_probe_current_heads,
 )
 from batman_detector.harness.config import nodes_from_endpoints
 
@@ -40,7 +42,7 @@ def _b64d(segment: str) -> bytes:
 
 def _fake_transport(bal_hex: str):
     def transport(method, params):
-        if method == "engine_forkchoiceUpdatedV3":
+        if method in {"engine_forkchoiceUpdatedV3", "engine_forkchoiceUpdatedV4"}:
             return {"payloadStatus": {"status": "VALID"}, "payloadId": "0x01"}
         if method == "engine_getPayloadV6":
             return {"executionPayload": {"blockNumber": "0x1", "blockAccessList": bal_hex}}
@@ -97,12 +99,112 @@ class TestRunner(unittest.TestCase):
         self.assertTrue(result["agree"])
         self.assertEqual(result["structural_diff"], [])
 
+    def test_uses_forkchoice_v4_for_amsterdam_payload_attributes(self):
+        seen = []
+
+        def transport(method, params):
+            seen.append((method, params))
+            if method == "engine_forkchoiceUpdatedV4":
+                return {"payloadStatus": {"status": "VALID"}, "payloadId": "0x01"}
+            if method == "engine_getPayloadV6":
+                return {"executionPayload": {"blockAccessList": "0x" + encode_bal(_canonical()).hex()}}
+            raise AssertionError(f"unexpected method {method}")
+
+        node = EngineClient("http://geth", transport=transport)
+        run_live_differential(
+            {"geth": node},
+            {"headBlockHash": "0x0"},
+            {"timestamp": "0x1", "slotNumber": "0x1", "targetGasLimit": "0x1"},
+        )
+
+        self.assertEqual(seen[0][0], "engine_forkchoiceUpdatedV4")
+        self.assertEqual(len(seen[0][1]), 2)
+
 
 class TestConfig(unittest.TestCase):
     def test_nodes_from_endpoints_uses_engine_url(self):
         eps = [{"client_id": "geth", "rpc": "http://r:8545", "engine": "http://e:8551"}]
         nodes = nodes_from_endpoints(eps, jwt_secret=b"\x00" * 32)
         self.assertEqual(nodes["geth"].url, "http://e:8551")
+
+    def test_nodes_from_endpoints_adds_http_scheme(self):
+        eps = [{"client_id": "geth", "engine": "127.0.0.1:8551"}]
+        nodes = nodes_from_endpoints(eps)
+        self.assertEqual(nodes["geth"].url, "http://127.0.0.1:8551")
+
+
+class TestSmokeProbe(unittest.TestCase):
+    def test_next_slot_payload_attributes_tracks_current_head(self):
+        attrs = next_slot_payload_attributes(
+            {"prevRandao": "0x11", "targetGasLimit": "0x1"},
+            {"number": "0x9", "slotNumber": "0x20", "timestamp": "0x64", "gasLimit": "0x2"},
+        )
+        self.assertEqual(attrs["timestamp"], "0x70")
+        self.assertEqual(attrs["slotNumber"], "0x21")
+        self.assertEqual(attrs["targetGasLimit"], "0x2")
+        self.assertEqual(attrs["prevRandao"], "0x11")
+
+    def test_next_slot_payload_attributes_falls_back_to_block_number(self):
+        attrs = next_slot_payload_attributes({}, {"number": "0x9", "timestamp": "0x64"})
+        self.assertEqual(attrs["slotNumber"], "0xa")
+
+    def test_smoke_probe_current_heads_returns_bal_status(self):
+        bal_hex = "0x" + encode_bal(_canonical()).hex()
+        endpoints = [{"client_id": "geth", "rpc": "rpc:8545", "engine": "engine:8551"}]
+        nodes = {"geth": EngineClient("http://engine:8551", transport=_fake_transport(bal_hex))}
+
+        def rpc(url, method, params):
+            self.assertEqual(url, "rpc:8545")
+            self.assertEqual(method, "eth_getBlockByNumber")
+            self.assertEqual(params, ["latest", False])
+            return {
+                "number": "0x5",
+                "hash": "0xabc",
+                "timestamp": "0xa",
+                "gasLimit": "0x100",
+                "blockAccessList": [],
+            }
+
+        results = smoke_probe_current_heads(
+            endpoints,
+            payload_attributes={"prevRandao": "0x11", "slotNumber": "0x1", "targetGasLimit": "0x1"},
+            nodes=nodes,
+            rpc=rpc,
+        )
+
+        self.assertEqual(results[0]["client_id"], "geth")
+        self.assertEqual(results[0]["head_number"], 5)
+        self.assertTrue(results[0]["rpc_has_bal"])
+        self.assertTrue(results[0]["engine_has_bal"])
+        self.assertGreater(results[0]["engine_bal_bytes"], 0)
+
+    def test_build_shared_payload_spec_picks_common_head(self):
+        from batman_detector.harness import build_shared_payload_spec
+
+        endpoints = [
+            {"client_id": "geth", "rpc": "geth:8545", "engine": "geth:8551"},
+            {"client_id": "reth", "rpc": "reth:8545", "engine": "reth:8551"},
+        ]
+        latest = {
+            "geth:8545": {"number": "0x6", "hash": "0xnewgeth", "timestamp": "0x64", "gasLimit": "0x100"},
+            "reth:8545": {"number": "0x5", "hash": "0xnewreth", "timestamp": "0x64", "gasLimit": "0x100"},
+        }
+        block5 = {"number": "0x5", "hash": "0xshared", "timestamp": "0x60", "gasLimit": "0x100"}
+
+        def rpc(url, method, params):
+            if params[0] == "latest":
+                return latest[url]
+            self.assertEqual(params[0], "0x5")  # common head = min(6, 5)
+            return block5
+
+        spec = build_shared_payload_spec(endpoints, seed_attrs={"prevRandao": "0x11"}, rpc=rpc)
+        self.assertEqual(spec["shared_head"]["number"], 5)
+        self.assertEqual(spec["shared_head"]["hash"], "0xshared")
+        self.assertTrue(spec["shared_head"]["agree"])
+        self.assertEqual(spec["forkchoice_state"]["headBlockHash"], "0xshared")
+        self.assertEqual(spec["payload_attributes"]["prevRandao"], "0x11")
+        self.assertEqual(spec["payload_attributes"]["slotNumber"], "0x6")  # 5 + 1
+        self.assertEqual(spec["payload_attributes"]["timestamp"], "0x6c")  # 0x60 + 12
 
 
 class TestLiveTrace(unittest.TestCase):

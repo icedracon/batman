@@ -11,7 +11,7 @@ class ValidationError(Exception):
 
 def load_json(path: Path) -> dict[str, Any]:
     try:
-        with path.open("r", encoding="utf-8") as handle:
+        with path.open("r", encoding="utf-8-sig") as handle:
             data = json.load(handle)
     except FileNotFoundError as exc:
         raise ValidationError(f"file not found: {path}") from exc

@@ -49,7 +49,9 @@ network_params:
   fulu_fork_epoch: 0
   gloas_fork_epoch: 1          # Gloas (ePBS + BAL) at epoch 1, as in glamsterdam-devnet-0
   seconds_per_slot: 6
-  num_validator_keys_per_node: 64
+  # Fulu/PeerDAS validation in ethereum-package requires at least one node with
+  # 128+ validators unless using a larger perfect-peerdas topology.
+  num_validator_keys_per_node: 128
 
 # Dora = lightweight beacon explorer to eyeball blocks/payloads. Targeted BAL
 # fixtures are driven by the Batman harness (engine_getPayloadV6), not random

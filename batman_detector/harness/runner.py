@@ -30,10 +30,14 @@ def extract_bal_hex(payload_result: Any) -> str | None:
 def build_and_get_bal(
     node: EngineClient, forkchoice_state: dict, payload_attributes: dict | None
 ) -> tuple[str | None, str | None]:
-    fcu = node.forkchoice_updated_v3(forkchoice_state, payload_attributes)
+    if payload_attributes and {"slotNumber", "targetGasLimit"} <= set(payload_attributes):
+        fcu = node.forkchoice_updated_v4(forkchoice_state, payload_attributes, None)
+    else:
+        fcu = node.forkchoice_updated_v3(forkchoice_state, payload_attributes)
     payload_id = (fcu or {}).get("payloadId")
     if not payload_id:
-        return None, "no payloadId (client not building, or forkchoiceUpdated rejected)"
+        payload_status = (fcu or {}).get("payloadStatus")
+        return None, f"no payloadId (client not building, or forkchoiceUpdated rejected); response={payload_status}"
     result = node.get_payload_v6(payload_id)
     bal_hex = extract_bal_hex(result)
     if not bal_hex:
@@ -90,7 +94,7 @@ def build_live_trace(
         {"kind": "bal_output", "client_id": cid, "bal_rlp": "0x" + raw.hex()}
         for cid, raw in raw_by_client.items()
     ]
-    block: dict[str, Any] = {"transaction_count": 0}
+    block: dict[str, Any] = {"number": 0, "transaction_count": 0}
     if header_hash:
         block["block_access_list_hash"] = header_hash
 
@@ -113,6 +117,7 @@ def build_live_trace(
         "scenario": {
             "detector_ids": ["BAL_SYSTEM_CONTRACT_INDEX_CONFUSION"],
             "description": "Live Engine API BAL differential across execution clients.",
+            "success_condition": "Live clients return comparable blockAccessList bytes for the same payload attributes.",
         },
         "provenance": {"kind": "live_devnet", "bounty_eligible": True, "client_notes": notes or {}},
         "block": block,

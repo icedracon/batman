@@ -33,8 +33,9 @@ fi
   first=1
   for svc in $services; do
     rpc=$(kurtosis port print "$ENCLAVE" "$svc" rpc 2>/dev/null || true)
+    [ -z "$rpc" ] && rpc=$(kurtosis port print "$ENCLAVE" "$svc" ws-rpc 2>/dev/null || true)
     engine=$(kurtosis port print "$ENCLAVE" "$svc" engine-rpc 2>/dev/null || true)
-    [ -z "$rpc" ] && continue
+    [ -z "$engine" ] && continue
     [ $first -eq 0 ] && echo ","
     first=0
     printf '  {"client_id": "%s", "rpc": "%s", "engine": "%s"}' "$svc" "$rpc" "$engine"

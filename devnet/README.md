@@ -7,12 +7,12 @@ so we can compare each EL's independently-computed BAL for the same block.
 ## Prerequisites
 
 - **Docker** (running).
-- **Kurtosis CLI.** Kurtosis has no native Windows build — install it inside **WSL**:
+- **Kurtosis CLI.** Kurtosis has no native Windows build - install it inside **WSL**:
   ```bash
   # In Windows PowerShell, install an Ubuntu distro if you don't have one:
   #   wsl --install -d Ubuntu      (then set up the Linux user, reopen the shell)
   # Inside the Ubuntu WSL shell:
-  echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
+  echo "deb [trusted=yes] https://sdk.kurtosis.com/kurtosis-cli-release-artifacts/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
   sudo apt update && sudo apt install -y kurtosis-cli
   kurtosis version
   ```
@@ -27,12 +27,12 @@ so we can compare each EL's independently-computed BAL for the same block.
 `glamsterdam-devnet.yaml` pins **real** current images:
 `ethpandaops/<client>:glamsterdam-devnet-0` (verified on Docker Hub 2026-04-29).
 geth + erigon + reth + nethermind are active (all four EL tags confirmed; geth/
-erigon/lighthouse pre-pulled OK). besu is omitted — not built for devnet-0 yet.
+erigon/lighthouse pre-pulled OK). besu is omitted - not built for devnet-0 yet.
 
 - When ethpandaops cut a newer devnet, bump `-devnet-0` everywhere.
 - Browse tags: https://hub.docker.com/u/ethpandaops
 - EIP-7928 is implemented by geth, besu, reth, nethermind, erigon, nimbus-eth1,
-  ethrex — enable whichever ELs you want in `participants`.
+  ethrex - enable whichever ELs you want in `participants`.
 
 ## Run
 
@@ -52,10 +52,24 @@ kurtosis enclave inspect batman-gloas
 ./devnet/endpoints.sh batman-gloas     # writes devnet/endpoints.json
 ```
 
-`endpoints.json` is a list of `{client_id, rpc, engine}` — the seam the Batman
-differential harness will read to call each EL's `engine_getPayloadV6` and collect
+`endpoints.json` is a list of `{client_id, rpc, engine}` - the data Batman's
+differential harness reads to call each EL's `engine_getPayloadV6` and collect
 its BAL bytes. If the helper's parsing doesn't match your package version, fill
 `endpoints.json` by hand from `kurtosis enclave inspect`.
+
+## Smoke test
+
+After downloading the Engine API JWT artifact to `devnet/jwt_file/jwtsecret`, run:
+
+```bash
+python -m batman_detector bal-smoke-live \
+  --endpoints devnet/endpoints.json \
+  --jwt-secret devnet/jwt_file/jwtsecret \
+  --payload-spec devnet/payload-spec.latest.json
+```
+
+This builds from each client's own current head and checks whether a BAL comes back.
+It is a liveness test, not a same-block differential.
 
 ## Teardown
 

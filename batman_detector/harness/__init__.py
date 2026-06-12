@@ -14,6 +14,7 @@ from .jwt import load_jwt_secret, make_engine_jwt
 from .engine_client import EngineClient, EngineError
 from .config import load_endpoints, nodes_from_endpoints
 from .runner import build_live_trace, collect_bals, extract_bal_hex, run_live_differential
+from .smoke import build_shared_payload_spec, next_slot_payload_attributes, smoke_probe_current_heads
 
 __all__ = [
     "load_jwt_secret",
@@ -26,4 +27,7 @@ __all__ = [
     "collect_bals",
     "extract_bal_hex",
     "run_live_differential",
+    "next_slot_payload_attributes",
+    "smoke_probe_current_heads",
+    "build_shared_payload_spec",
 ]

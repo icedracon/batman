@@ -9,3 +9,8 @@ __pycache__/
 first-scan-report.md
 *-scan-report.md
 reports/private/
+
+# Local Kurtosis/devnet runtime outputs. Includes Engine API JWT secrets.
+devnet/endpoints.json
+devnet/payload-spec*.json
+devnet/jwt_file/
