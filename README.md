@@ -11,30 +11,38 @@ divergence to the exact account / storage slot / `block_access_index`.
 
 Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (authoritative).
 Roadmap: **[ROADMAP.md](ROADMAP.md)**.
+Compatibility matrix: **[docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)**.
+Public evidence workflow: **[docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)**.
 
 ## Current status
 
 - MIT-licensed, installable Python package with a `batman` CLI.
-- 43 unit tests and GitHub Actions CI.
+- 47 unit tests and GitHub Actions CI.
 - Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
 - Full 4-way same-head differential is intentionally refused on the current devnet split:
   erigon is at block 8 while geth/reth/nethermind share block 7.
 - A scoped 3-way same-head differential for geth/reth/nethermind passes with 0 findings.
+- A deterministic offline BAL canonicalization fuzzer exercises seven ordering mutations.
+- A safe public evidence-bundle builder emits reviewer inventories and SHA-256 manifests.
 
 ## What's real
 
 - **`batman_detector/bal/`** - a real EIP-7928 BAL engine: typed RLP model, encode/decode,
   `block_access_list_hash` (anchored to the spec's empty-BAL constant), a canonical-form
-  validator, a cross-client structural differ, and fixture generators.
+  validator, a cross-client structural differ, fixture generators, and an offline ordering fuzzer.
 - **`batman_detector/detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`** - runs on real decoded
   BAL bytes: per-client canonical + header-hash checks and a structural cross-client diff.
 - **`batman_detector/harness/`** - JWT-authed Engine API client + runner that drives
   `engine_getPayloadV6` on each EL and feeds the returned BAL into the engine. Mock-tested
   offline; talks real JSON-RPC against a devnet.
+- **`batman_detector/evidence_bundle.py`** - builds compact public-review bundles from explicit
+  artifacts only and rejects secret-looking filenames, symlinks, duplicate output names,
+  unsupported extensions, and oversized files.
 - **`devnet/`** - a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-43 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash.
+47 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
+full mutator coverage for the offline canonicalization campaign, and evidence-bundle safety checks.
 
 ## Quick Start
 
@@ -67,6 +75,37 @@ slot 0x7: change list differs [(0, 1), (1, 2), (2, 3)] vs [(0, 1), (1, 3)]
 
 Only traces with live/private-devnet provenance are allowed to escalate cross-client
 BAL divergence to critical severity.
+
+## Offline canonicalization campaign
+
+```bash
+python -m batman_detector.bal.fuzzer \
+    --iterations 64 \
+    --seed 7928 \
+    --format json
+```
+
+The campaign mutates account ordering, storage-slot ordering, storage-change indexes,
+storage-read ordering, balance-change indexes, nonce-change indexes, and code-change indexes.
+It verifies that the validator detects each mutation and that canonicalization repairs ordering.
+No RPC endpoint is contacted.
+
+## Public evidence bundle
+
+```bash
+python -m batman_detector.evidence_bundle \
+    --output-dir dist/public-evidence \
+    --artifact artifacts/live-heads.json \
+    --artifact artifacts/live-smoke.json \
+    --artifact artifacts/live-4way-diff.txt \
+    --artifact artifacts/live-3way-diff.txt \
+    --artifact artifacts/subset-live-report.md \
+    --metadata spec=eip-7928 \
+    --metadata provenance=private-devnet
+```
+
+The generated directory contains copied public-safe artifacts, `manifest.json` with SHA-256
+digests, and a reviewer-friendly `README.md`. Review the directory manually before publication.
 
 ## Live differential (needs a Gloas devnet)
 
@@ -132,6 +171,8 @@ Current committed live evidence:
 - Security and disclosure policy: [SECURITY.md](SECURITY.md)
 - Contribution workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Release notes: [CHANGELOG.md](CHANGELOG.md)
+- Compatibility matrix: [docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)
+- Public evidence workflow: [docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)
 
 ## Bounty / disclosure safety
 

@@ -30,3 +30,19 @@ jobs:
           python -m batman_detector static-scan examples/audit_targets/bal_first_scan.sample.json --format json
           python -m batman_detector run examples/traces/bal_system_index_confusion.generated.json --format json
 
+      - name: Offline BAL canonicalization fuzzer
+        run: python -m batman_detector.bal.fuzzer --iterations 64 --format json
+
+      - name: Public evidence bundle smoke test
+        run: |
+          python -m batman_detector.evidence_bundle \
+            --output-dir dist/public-evidence \
+            --artifact artifacts/live-heads.json \
+            --artifact artifacts/live-smoke.json \
+            --artifact artifacts/live-4way-diff.txt \
+            --artifact artifacts/live-3way-diff.txt \
+            --artifact artifacts/subset-live-report.md \
+            --metadata spec=eip-7928 \
+            --metadata provenance=private-devnet
+          test -f dist/public-evidence/manifest.json
+          test -f dist/public-evidence/README.md

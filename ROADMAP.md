@@ -4,21 +4,30 @@ Batman focuses on one useful wedge first: EIP-7928 Block-Level Access List readi
 The project is not a full Ethereum client fuzzer and does not claim to replace
 client-team testing.
 
+## Completed grant-polish milestones
+
+- Added a deterministic offline BAL canonicalization fuzzer for account, slot, and
+  `block_access_index` ordering.
+- Added a compatibility matrix for Geth, Erigon, Reth, and Nethermind devnet behavior.
+- Added a reusable safe command for producing a compact public evidence bundle with
+  SHA-256 manifests and secret-looking filename rejection.
+- Added unit tests and CI smoke checks for the new reviewer-facing workflow.
+
 ## Near term
 
 - Keep the BAL codec pinned to the current Glamsterdam/EIP-7928 draft behavior.
-- Expand canonicalization and malformed-encoding test coverage.
+- Expand malformed-encoding test coverage beyond ordering mutations.
 - Refresh live devnet evidence as new Gloas/Glamsterdam devnets become available.
 - Track which clients return `blockAccessList` over the Engine API and under which
   fork/head conditions.
+- Record exact execution-client and consensus-client image digests for refreshed runs.
 
 ## Next
 
-- Add a BAL canonicalization fuzzer for account, slot, and `block_access_index`
-  ordering.
-- Add a compatibility matrix for Geth, Erigon, Reth, and Nethermind devnet images.
-- Add a reusable command for producing a compact public evidence bundle.
 - Expand `static-scan` checks for audit-target manifests before live runs.
+- Add a machine-readable compatibility snapshot alongside the Markdown matrix.
+- Add fixture minimization for BAL divergences so reports contain the smallest useful
+  reproducer.
 
 ## Later
 
@@ -34,4 +43,3 @@ client-team testing.
 - Public-RPC testing.
 - Publishing suspected client vulnerabilities before private disclosure.
 - Treating synthetic fixtures as proof of real client bugs.
-
