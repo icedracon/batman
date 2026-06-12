@@ -42,7 +42,7 @@ a way to see BAL behavior and impact before mainnet.
   `glamsterdam-devnet-0` images (geth/erigon/reth/nethermind), endpoint extraction.
 - **Provenance-gated severity**: synthetic fixtures are controls and can never reach
   bounty-grade; only live-devnet provenance escalates a divergence to critical.
-- **43 unit tests + GitHub Actions CI.** MIT-licensed.
+- **49 unit tests + GitHub Actions CI.** MIT-licensed.
 
 **Live-validated** against a running 4-EL Kurtosis devnet: the smoke probe returns a
 BAL from all four clients. The strict `bal-diff-live --refresh` path currently

@@ -4,6 +4,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+dist/
 
 # Keep generated/private disclosure reports out of normal commits.
 first-scan-report.md

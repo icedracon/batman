@@ -200,3 +200,64 @@ def validate_fuzz_campaign(data: dict[str, Any]) -> list[str]:
     if not invariants:
         warnings.append("fuzz campaign has no invariants")
     return warnings
+
+
+def validate_compatibility_snapshot(data: dict[str, Any]) -> list[str]:
+    warnings: list[str] = []
+    if data.get("schema_version") != "batman.compatibility_snapshot.v1":
+        raise ValidationError("`schema_version` must be `batman.compatibility_snapshot.v1`")
+
+    _require_str(data, "snapshot_id")
+    _require_str(data, "generated_at")
+    _require_object(data, "target")
+    _require_object(data, "batman")
+    _require_object(data, "devnet")
+    head_agreement = _require_object(data, "head_agreement")
+    clients = _require_list(data, "clients")
+    results = _require_object(data, "results")
+    artifacts = _require_list(data, "artifacts")
+    safety = _require_object(data, "safety")
+
+    if not isinstance(head_agreement.get("agree"), bool):
+        raise ValidationError("`head_agreement.agree` must be a boolean")
+    if not isinstance(head_agreement.get("groups"), list):
+        raise ValidationError("`head_agreement.groups` must be a list")
+
+    client_ids = set()
+    for client in clients:
+        if not isinstance(client, dict):
+            raise ValidationError("each compatibility client must be an object")
+        client_id = _require_str(client, "client_id")
+        if client_id in client_ids:
+            raise ValidationError(f"duplicate compatibility client id: {client_id}")
+        client_ids.add(client_id)
+        if not isinstance(client.get("engine_has_bal"), bool):
+            raise ValidationError("`client.engine_has_bal` must be a boolean")
+        if not isinstance(client.get("included_in_same_head_differential"), bool):
+            raise ValidationError("`client.included_in_same_head_differential` must be a boolean")
+
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            raise ValidationError("each compatibility artifact must be an object")
+        _require_str(artifact, "kind")
+        _require_str(artifact, "path")
+        _require_str(artifact, "sha256")
+        size = artifact.get("bytes")
+        if not isinstance(size, int) or size < 0:
+            raise ValidationError("`artifact.bytes` must be a non-negative integer")
+
+    for field in ("mainnet", "public_rpc", "bounty_claim"):
+        if not isinstance(safety.get(field), bool):
+            raise ValidationError(f"`safety.{field}` must be a boolean")
+
+    if safety.get("mainnet") or safety.get("public_rpc"):
+        warnings.append("compatibility snapshot should be local/private-devnet only")
+    if safety.get("bounty_claim"):
+        warnings.append("compatibility snapshot is marked as a bounty claim; verify disclosure status")
+    if results.get("four_way_same_head_differential") != "available" and head_agreement.get("agree"):
+        warnings.append("heads agree but four-way result is not marked available")
+    if not clients:
+        warnings.append("compatibility snapshot has no clients")
+    if not artifacts:
+        warnings.append("compatibility snapshot has no artifacts")
+    return warnings

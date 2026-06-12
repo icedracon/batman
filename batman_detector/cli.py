@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from .detectors import DETECTORS
@@ -11,11 +12,19 @@ from .schemas import (
     ValidationError,
     load_json,
     validate_audit_target,
+    validate_compatibility_snapshot,
     validate_fuzz_campaign,
     validate_ruleset,
     validate_trace,
 )
 from .static_scan import scan_audit_target
+
+
+def _package_version() -> str:
+    try:
+        return version("batman-detector")
+    except PackageNotFoundError:
+        return "0+unknown"
 
 
 def _print_findings(findings) -> None:
@@ -41,6 +50,8 @@ def _cmd_validate(args: argparse.Namespace) -> int:
             warnings = validate_audit_target(data)
         elif args.schema == "fuzz-campaign":
             warnings = validate_fuzz_campaign(data)
+        elif args.schema == "compatibility-snapshot":
+            warnings = validate_compatibility_snapshot(data)
         elif args.schema == "ruleset":
             warnings = validate_ruleset(data)
         else:
@@ -320,6 +331,78 @@ def _cmd_bal_heads_live(args: argparse.Namespace) -> int:
     return 0 if status["agree"] else 1
 
 
+def _cmd_compatibility_snapshot(args: argparse.Namespace) -> int:
+    from .compatibility import build_compatibility_snapshot
+
+    try:
+        metadata = {}
+        for item in args.metadata or []:
+            if "=" not in item:
+                raise ValueError(f"metadata must use key=value form: {item}")
+            key, value = item.split("=", 1)
+            if not key.strip():
+                raise ValueError("metadata key cannot be empty")
+            metadata[key.strip()] = value.strip()
+        snapshot = build_compatibility_snapshot(
+            heads_path=Path(args.heads),
+            smoke_path=Path(args.smoke),
+            four_way_output_path=Path(args.four_way_output) if args.four_way_output else None,
+            subset_trace_path=Path(args.subset_trace) if args.subset_trace else None,
+            subset_report_path=Path(args.subset_report) if args.subset_report else None,
+            snapshot_id=args.snapshot_id,
+            batman_commit=args.batman_commit,
+            spec=args.spec,
+            devnet=args.devnet,
+            metadata=metadata,
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"SNAPSHOT ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"WROTE: {output}")
+    print(f"clients: {len(snapshot['clients'])}")
+    print(f"four-way: {snapshot['results']['four_way_same_head_differential']}")
+    return 0
+
+
+def _cmd_evidence_pack(args: argparse.Namespace) -> int:
+    from .evidence_bundle import build_public_evidence_bundle
+
+    if args.preset != "glamsterdam-bal":
+        print(f"UNKNOWN PRESET: {args.preset}", file=sys.stderr)
+        return 2
+
+    artifacts = [
+        Path("artifacts/live-heads.json"),
+        Path("artifacts/live-smoke.json"),
+        Path("artifacts/live-4way-diff.txt"),
+        Path("artifacts/live-3way-diff.txt"),
+        Path("artifacts/subset-live-report.md"),
+    ]
+    snapshot = Path("artifacts/compatibility-snapshot.gloas-devnet0.json")
+    if snapshot.exists():
+        artifacts.append(snapshot)
+    try:
+        manifest = build_public_evidence_bundle(
+            artifacts=artifacts,
+            output_dir=Path(args.output_dir),
+            metadata={
+                "preset": args.preset,
+                "spec": "eip-7928",
+                "provenance": "private-devnet",
+            },
+        )
+    except (OSError, ValueError) as exc:
+        print(f"BUNDLE ERROR: {exc}", file=sys.stderr)
+        return 2
+    print(f"WROTE: {Path(args.output_dir) / 'manifest.json'}")
+    print(f"artifacts: {len(manifest['artifacts'])}")
+    return 0
+
+
 def _add_client_selection_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--client", action="append", help="Only include this client id; can be repeated")
     parser.add_argument("--exclude-client", action="append", help="Exclude this client id; can be repeated")
@@ -330,13 +413,14 @@ def build_parser() -> argparse.ArgumentParser:
         prog="batman",
         description="Run Glamsterdam/Gloas detector traces.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {_package_version()}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     validate = subparsers.add_parser("validate", help="Validate a trace or ruleset file")
     validate.add_argument("path")
     validate.add_argument(
         "--schema",
-        choices=["trace", "ruleset", "audit-target", "fuzz-campaign"],
+        choices=["trace", "ruleset", "audit-target", "fuzz-campaign", "compatibility-snapshot"],
         default="trace",
     )
     validate.set_defaults(func=_cmd_validate)
@@ -402,6 +486,31 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--format", choices=["text", "json"], default="text")
     _add_client_selection_args(smoke)
     smoke.set_defaults(func=_cmd_bal_smoke_live)
+
+    snapshot = subparsers.add_parser(
+        "compatibility-snapshot",
+        help="Build a machine-readable compatibility snapshot from public live artifacts",
+    )
+    snapshot.add_argument("--heads", required=True, help="bal-heads-live JSON artifact")
+    snapshot.add_argument("--smoke", required=True, help="bal-smoke-live JSON artifact")
+    snapshot.add_argument("--four-way-output", help="4-way differential command output artifact")
+    snapshot.add_argument("--subset-trace", help="subset live trace artifact")
+    snapshot.add_argument("--subset-report", help="subset live report artifact")
+    snapshot.add_argument("--output", required=True)
+    snapshot.add_argument("--snapshot-id", default="gloas-devnet-bal-snapshot")
+    snapshot.add_argument("--batman-commit", default="unknown")
+    snapshot.add_argument("--spec", default="eip-7928")
+    snapshot.add_argument("--devnet", default="gloas-private-devnet")
+    snapshot.add_argument("--metadata", action="append", help="key=value metadata; repeatable")
+    snapshot.set_defaults(func=_cmd_compatibility_snapshot)
+
+    evidence_pack = subparsers.add_parser(
+        "evidence-pack",
+        help="Build a preset public evidence bundle from committed artifacts",
+    )
+    evidence_pack.add_argument("--preset", choices=["glamsterdam-bal"], default="glamsterdam-bal")
+    evidence_pack.add_argument("--output-dir", default="dist/public-evidence")
+    evidence_pack.set_defaults(func=_cmd_evidence_pack)
 
     return parser
 

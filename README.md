@@ -13,6 +13,7 @@ Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (author
 Roadmap: **[ROADMAP.md](ROADMAP.md)**.
 Compatibility matrix: **[docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)**.
 Public evidence workflow: **[docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)**.
+GitHub presentation checklist: **[docs/GITHUB_POLISH.md](docs/GITHUB_POLISH.md)**.
 
 ## Demo
 
@@ -36,39 +37,45 @@ private disclosure. More detail: **[docs/WHY_THIS_MATTERS.md](docs/WHY_THIS_MATT
 
 Open roadmap issues:
 
-- [#2 — machine-readable client compatibility snapshots](https://github.com/icedracon/batman/issues/2)
-- [#3 — compact BAL divergence reproducers](https://github.com/icedracon/batman/issues/3)
-- [#4 — malformed BAL encoding corpus expansion](https://github.com/icedracon/batman/issues/4)
+- [#2 - enrich compatibility snapshots with pinned image digests](https://github.com/icedracon/batman/issues/2)
+- [#3 - compact BAL divergence reproducers](https://github.com/icedracon/batman/issues/3)
+- [#4 - promote malformed BAL checks into stable fixtures](https://github.com/icedracon/batman/issues/4)
 
 ## Current status
 
 - MIT-licensed, installable Python package with a `batman` CLI.
-- 47 unit tests and GitHub Actions CI.
+- 49 unit tests and GitHub Actions CI.
 - Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
 - Full 4-way same-head differential is intentionally refused on the current devnet split:
   erigon is at block 8 while geth/reth/nethermind share block 7.
 - A scoped 3-way same-head differential for geth/reth/nethermind passes with 0 findings.
-- A deterministic offline BAL canonicalization fuzzer exercises seven ordering mutations.
-- A safe public evidence-bundle builder emits reviewer inventories and SHA-256 manifests.
+- A deterministic offline BAL fuzzer exercises seven ordering mutations plus 13 malformed
+  or ambiguous BAL corpus cases.
+- A machine-readable compatibility snapshot summarizes client/head/BAL status without
+  turning a split-devnet run into a 4-way claim.
+- A safe public evidence-pack command emits reviewer inventories and SHA-256 manifests.
 
 ## What's real
 
 - **`batman_detector/bal/`** - a real EIP-7928 BAL engine: typed RLP model, encode/decode,
   `block_access_list_hash` (anchored to the spec's empty-BAL constant), a canonical-form
-  validator, a cross-client structural differ, fixture generators, and an offline ordering fuzzer.
+  validator, a cross-client structural differ, fixture generators, and an offline fuzzer.
 - **`batman_detector/detectors/BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`** - runs on real decoded
   BAL bytes: per-client canonical + header-hash checks and a structural cross-client diff.
 - **`batman_detector/harness/`** - JWT-authed Engine API client + runner that drives
   `engine_getPayloadV6` on each EL and feeds the returned BAL into the engine. Mock-tested
   offline; talks real JSON-RPC against a devnet.
+- **`batman_detector/compatibility.py`** - builds machine-readable compatibility snapshots
+  from public-safe live evidence artifacts.
 - **`batman_detector/evidence_bundle.py`** - builds compact public-review bundles from explicit
   artifacts only and rejects secret-looking filenames, symlinks, duplicate output names,
   unsupported extensions, and oversized files.
 - **`devnet/`** - a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-47 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
-full mutator coverage for the offline canonicalization campaign, and evidence-bundle safety checks.
+49 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
+full mutator coverage for the offline canonicalization campaign, malformed BAL corpus checks,
+compatibility snapshot validation, and evidence-bundle safety checks.
 
 ## Quick Start
 
@@ -108,26 +115,35 @@ BAL divergence to critical severity.
 python -m batman_detector.bal.fuzzer \
     --iterations 64 \
     --seed 7928 \
+    --include-malformed \
     --format json
 ```
 
 The campaign mutates account ordering, storage-slot ordering, storage-change indexes,
 storage-read ordering, balance-change indexes, nonce-change indexes, and code-change indexes.
-It verifies that the validator detects each mutation and that canonicalization repairs ordering.
-No RPC endpoint is contacted.
+It also checks duplicate accounts, duplicate slots, duplicate `block_access_index` entries,
+read/write overlap, malformed RLP shapes, and uint boundary failures. No RPC endpoint is contacted.
+
+## Compatibility snapshot
+
+```bash
+python -m batman_detector compatibility-snapshot \
+    --heads artifacts/live-heads.json \
+    --smoke artifacts/live-smoke.json \
+    --four-way-output artifacts/live-4way-diff.txt \
+    --subset-trace artifacts/subset-live-trace.json \
+    --subset-report artifacts/subset-live-report.md \
+    --output artifacts/compatibility-snapshot.gloas-devnet0.json \
+    --metadata source=committed-live-evidence
+```
+
+The snapshot is machine-readable reviewer evidence: client heads, BAL smoke status,
+same-head inclusion, artifact hashes, and safety flags.
 
 ## Public evidence bundle
 
 ```bash
-python -m batman_detector.evidence_bundle \
-    --output-dir dist/public-evidence \
-    --artifact artifacts/live-heads.json \
-    --artifact artifacts/live-smoke.json \
-    --artifact artifacts/live-4way-diff.txt \
-    --artifact artifacts/live-3way-diff.txt \
-    --artifact artifacts/subset-live-report.md \
-    --metadata spec=eip-7928 \
-    --metadata provenance=private-devnet
+python -m batman_detector evidence-pack --output-dir dist/public-evidence
 ```
 
 The generated directory contains copied public-safe artifacts, `manifest.json` with SHA-256
@@ -190,6 +206,7 @@ Current committed live evidence:
 - [live-3way-diff.txt](artifacts/live-3way-diff.txt): command output for the scoped 3-way same-head pass.
 - [subset-live-trace.json](artifacts/subset-live-trace.json): 3-way same-head BAL trace for geth/reth/nethermind.
 - [subset-live-report.md](artifacts/subset-live-report.md): detector report for that trace, with 0 findings.
+- [compatibility-snapshot.gloas-devnet0.json](artifacts/compatibility-snapshot.gloas-devnet0.json): machine-readable compatibility snapshot and artifact hashes.
 - Full 4-way same-head differential is intentionally blocked on the current devnet because erigon is one block ahead while geth/reth/nethermind share block 7.
 
 ## Maintainer notes
@@ -201,6 +218,7 @@ Current committed live evidence:
 - Public evidence workflow: [docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)
 - Why this matters: [docs/WHY_THIS_MATTERS.md](docs/WHY_THIS_MATTERS.md)
 - Open roadmap work: [docs/ROADMAP_ISSUES.md](docs/ROADMAP_ISSUES.md)
+- GitHub presentation checklist: [docs/GITHUB_POLISH.md](docs/GITHUB_POLISH.md)
 
 ## Bounty / disclosure safety
 

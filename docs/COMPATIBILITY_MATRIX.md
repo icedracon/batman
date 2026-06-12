@@ -21,6 +21,10 @@ Committed artifacts:
 - [`../artifacts/live-3way-diff.txt`](../artifacts/live-3way-diff.txt)
 - [`../artifacts/subset-live-trace.json`](../artifacts/subset-live-trace.json)
 - [`../artifacts/subset-live-report.md`](../artifacts/subset-live-report.md)
+- [`../artifacts/compatibility-snapshot.gloas-devnet0.json`](../artifacts/compatibility-snapshot.gloas-devnet0.json)
+
+The JSON snapshot is the machine-readable source for reviewer tooling. It records client
+heads, same-head inclusion, BAL smoke status, artifact hashes, and explicit safety flags.
 
 ## Reproducibility fields for future runs
 
@@ -60,6 +64,15 @@ python -m batman_detector bal-diff-live \
   --wait-shared-head 60 \
   --output-trace artifacts/live-trace.json \
   --output-report artifacts/live-report.md
+
+python -m batman_detector compatibility-snapshot \
+  --heads artifacts/live-heads.json \
+  --smoke artifacts/live-smoke.json \
+  --four-way-output artifacts/live-4way-diff.txt \
+  --subset-trace artifacts/subset-live-trace.json \
+  --subset-report artifacts/subset-live-report.md \
+  --output artifacts/compatibility-snapshot.gloas-devnet0.json \
+  --metadata source=refreshed-private-devnet
 ```
 
 ## Safety boundary

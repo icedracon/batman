@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/batman/compatibility-snapshot.schema.json",
+  "title": "Batman Compatibility Snapshot",
+  "type": "object",
+  "required": ["schema_version", "snapshot_id", "generated_at", "target", "batman", "devnet", "head_agreement", "clients", "results", "artifacts", "safety"],
+  "properties": {
+    "schema_version": { "const": "batman.compatibility_snapshot.v1" },
+    "snapshot_id": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "minLength": 1 },
+    "target": {
+      "type": "object",
+      "required": ["fork", "spec", "eips"],
+      "properties": {
+        "fork": { "type": "string" },
+        "spec": { "type": "string" },
+        "eips": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "batman": {
+      "type": "object",
+      "required": ["commit"],
+      "properties": {
+        "commit": { "type": "string" }
+      }
+    },
+    "devnet": {
+      "type": "object",
+      "required": ["name", "provenance"],
+      "properties": {
+        "name": { "type": "string" },
+        "provenance": { "type": "string" }
+      }
+    },
+    "head_agreement": {
+      "type": "object",
+      "required": ["agree", "groups"],
+      "properties": {
+        "agree": { "type": "boolean" },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["number", "hash", "clients"],
+            "properties": {
+              "number": { "type": "integer" },
+              "hash": { "type": "string" },
+              "clients": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "clients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["client_id", "engine_has_bal", "included_in_same_head_differential"],
+        "properties": {
+          "client_id": { "type": "string" },
+          "head_number": { "type": ["integer", "null"] },
+          "head_hash": { "type": ["string", "null"] },
+          "engine_has_bal": { "type": "boolean" },
+          "engine_bal_bytes": { "type": ["integer", "null"] },
+          "rpc_has_bal": { "type": "boolean" },
+          "included_in_same_head_differential": { "type": "boolean" }
+        }
+      }
+    },
+    "results": { "type": "object" },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "path", "bytes", "sha256"],
+        "properties": {
+          "kind": { "type": "string" },
+          "path": { "type": "string" },
+          "bytes": { "type": "integer" },
+          "sha256": { "type": "string" }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "required": ["mainnet", "public_rpc", "bounty_claim"],
+      "properties": {
+        "mainnet": { "type": "boolean" },
+        "public_rpc": { "type": "boolean" },
+        "bounty_claim": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "metadata": { "type": "object" }
+  }
+}
+

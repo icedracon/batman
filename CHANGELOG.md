@@ -1,14 +1,19 @@
 # Changelog
 
-## Unreleased - reviewer-facing grant polish
+## 0.1.1 - reviewer-facing grant polish
 
 - Added a deterministic offline BAL canonicalization fuzzer covering account ordering,
   storage-slot ordering, storage-change indexes, storage-read ordering, balance-change
   indexes, nonce-change indexes, and code-change indexes.
+- Expanded the offline corpus to duplicate accounts, duplicate slots, duplicate
+  `block_access_index` entries, read/write overlap, malformed RLP shapes, and uint
+  boundary failures.
+- Added a machine-readable compatibility snapshot for committed Gloas devnet evidence.
 - Added a safe public evidence bundle builder with explicit artifact selection, SHA-256
   manifests, symlink rejection, size limits, and secret-looking filename rejection.
 - Added a reviewer-facing Geth / Erigon / Reth / Nethermind compatibility matrix.
-- Added unit tests and GitHub Actions smoke checks for the new workflow.
+- Added `batman evidence-pack` for one-command public evidence bundles.
+- Added unit tests and GitHub Actions smoke checks for the reviewer-facing workflow.
 
 ## 0.1.0 - Glamsterdam BAL readiness prototype
 

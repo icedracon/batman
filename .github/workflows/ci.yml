@@ -31,18 +31,25 @@ jobs:
           python -m batman_detector run examples/traces/bal_system_index_confusion.generated.json --format json
 
       - name: Offline BAL canonicalization fuzzer
-        run: python -m batman_detector.bal.fuzzer --iterations 64 --format json
+        run: python -m batman_detector.bal.fuzzer --iterations 64 --include-malformed --format json
+
+      - name: Compatibility snapshot smoke test
+        run: |
+          python -m batman_detector compatibility-snapshot \
+            --heads artifacts/live-heads.json \
+            --smoke artifacts/live-smoke.json \
+            --four-way-output artifacts/live-4way-diff.txt \
+            --subset-trace artifacts/subset-live-trace.json \
+            --subset-report artifacts/subset-live-report.md \
+            --output artifacts/compatibility-snapshot.gloas-devnet0.json \
+            --batman-commit "$GITHUB_SHA" \
+            --metadata ci=true
+          python -m batman_detector validate artifacts/compatibility-snapshot.gloas-devnet0.json \
+            --schema compatibility-snapshot
 
       - name: Public evidence bundle smoke test
         run: |
-          python -m batman_detector.evidence_bundle \
-            --output-dir dist/public-evidence \
-            --artifact artifacts/live-heads.json \
-            --artifact artifacts/live-smoke.json \
-            --artifact artifacts/live-4way-diff.txt \
-            --artifact artifacts/live-3way-diff.txt \
-            --artifact artifacts/subset-live-report.md \
-            --metadata spec=eip-7928 \
-            --metadata provenance=private-devnet
+          python -m batman_detector evidence-pack \
+            --output-dir dist/public-evidence
           test -f dist/public-evidence/manifest.json
           test -f dist/public-evidence/README.md

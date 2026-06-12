@@ -16,7 +16,10 @@ from dataclasses import replace
 from random import Random
 from typing import Callable
 
+import rlp
+
 from .canonical import canonicalize, check_canonical
+from .codec import decode_bal
 from .model import (
     AccountChanges,
     BalanceChange,
@@ -28,6 +31,7 @@ from .model import (
 )
 
 Mutator = Callable[[BlockAccessList], BlockAccessList]
+MalformedCase = Callable[[], dict]
 
 
 def _base_bal() -> BlockAccessList:
@@ -104,6 +108,180 @@ MUTATORS: tuple[tuple[str, Mutator], ...] = (
 )
 
 
+def _duplicate_account_address_case() -> dict:
+    base = _base_bal()
+    bal = BlockAccessList(accounts=[base.accounts[0], base.accounts[0]])
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_account_address",
+        "detected": any("duplicate account address" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_storage_slot_case() -> dict:
+    account = _base_bal().accounts[0]
+    duplicate_slot = account.storage_changes[0]
+    bal = BlockAccessList(
+        accounts=[
+            replace(
+                account,
+                storage_changes=[duplicate_slot, duplicate_slot],
+            )
+        ]
+    )
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_storage_slot",
+        "detected": any("duplicate slot in storage_changes" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_storage_change_index_case() -> dict:
+    account = _base_bal().accounts[0]
+    slot = SlotChanges(1, [StorageChange(0, 10), StorageChange(0, 11)])
+    bal = BlockAccessList(accounts=[replace(account, storage_changes=[slot])])
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_storage_change_index",
+        "detected": any("duplicate block_access_index in storage changes" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_storage_read_case() -> dict:
+    account = _base_bal().accounts[0]
+    bal = BlockAccessList(accounts=[replace(account, storage_reads=[3, 3])])
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_storage_read",
+        "detected": any("duplicate key in storage_reads" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _read_write_overlap_case() -> dict:
+    account = _base_bal().accounts[0]
+    bal = BlockAccessList(accounts=[replace(account, storage_reads=[1, 9])])
+    violations = check_canonical(bal)
+    return {
+        "case": "read_write_overlap",
+        "detected": any("appear in both storage_changes and storage_reads" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_balance_index_case() -> dict:
+    account = _base_bal().accounts[0]
+    bal = BlockAccessList(
+        accounts=[replace(account, balance_changes=[BalanceChange(0, 100), BalanceChange(0, 101)])]
+    )
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_balance_index",
+        "detected": any("duplicate block_access_index in balance_changes" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_nonce_index_case() -> dict:
+    account = _base_bal().accounts[0]
+    bal = BlockAccessList(accounts=[replace(account, nonce_changes=[NonceChange(0, 1), NonceChange(0, 2)])])
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_nonce_index",
+        "detected": any("duplicate block_access_index in nonce_changes" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _duplicate_code_index_case() -> dict:
+    account = _base_bal().accounts[0]
+    bal = BlockAccessList(accounts=[replace(account, code_changes=[CodeChange(0, b"\x60"), CodeChange(0, b"\x61")])])
+    violations = check_canonical(bal)
+    return {
+        "case": "duplicate_code_index",
+        "detected": any("duplicate block_access_index in code_changes" in item for item in violations),
+        "violations": violations,
+    }
+
+
+def _decode_rejects_short_account_case() -> dict:
+    try:
+        decode_bal(rlp.encode([[bytes.fromhex("11" * 20), []]]))
+    except ValueError as exc:
+        return {
+            "case": "malformed_rlp_short_account",
+            "detected": "AccountChanges must be a 6-element list" in str(exc),
+            "error": str(exc),
+        }
+    return {"case": "malformed_rlp_short_account", "detected": False, "error": None}
+
+
+def _decode_rejects_code_list_case() -> dict:
+    malformed = [[bytes.fromhex("11" * 20), [], [], [], [], [[b"", []]]]]
+    try:
+        decode_bal(rlp.encode(malformed))
+    except ValueError as exc:
+        return {
+            "case": "malformed_rlp_code_is_list",
+            "detected": "CodeChange.new_code must be bytes" in str(exc),
+            "error": str(exc),
+        }
+    return {"case": "malformed_rlp_code_is_list", "detected": False, "error": None}
+
+
+def _uint_boundary_case(label: str, builder: Callable[[], object], expected: str) -> dict:
+    try:
+        builder()
+    except ValueError as exc:
+        return {
+            "case": label,
+            "detected": expected in str(exc),
+            "error": str(exc),
+        }
+    return {"case": label, "detected": False, "error": None}
+
+
+MALFORMED_CASES: tuple[tuple[str, MalformedCase], ...] = (
+    ("duplicate_account_address", _duplicate_account_address_case),
+    ("duplicate_storage_slot", _duplicate_storage_slot_case),
+    ("duplicate_storage_change_index", _duplicate_storage_change_index_case),
+    ("duplicate_storage_read", _duplicate_storage_read_case),
+    ("read_write_overlap", _read_write_overlap_case),
+    ("duplicate_balance_index", _duplicate_balance_index_case),
+    ("duplicate_nonce_index", _duplicate_nonce_index_case),
+    ("duplicate_code_index", _duplicate_code_index_case),
+    ("malformed_rlp_short_account", _decode_rejects_short_account_case),
+    ("malformed_rlp_code_is_list", _decode_rejects_code_list_case),
+    (
+        "uint32_block_access_index_overflow",
+        lambda: _uint_boundary_case(
+            "uint32_block_access_index_overflow",
+            lambda: StorageChange(1 << 32, 0),
+            "block_access_index out of uint32 range",
+        ),
+    ),
+    (
+        "uint64_nonce_overflow",
+        lambda: _uint_boundary_case(
+            "uint64_nonce_overflow",
+            lambda: NonceChange(0, 1 << 64),
+            "nonce out of uint64 range",
+        ),
+    ),
+    (
+        "uint256_storage_slot_overflow",
+        lambda: _uint_boundary_case(
+            "uint256_storage_slot_overflow",
+            lambda: SlotChanges(1 << 256, [StorageChange(0, 0)]),
+            "storage slot out of uint256 range",
+        ),
+    ),
+)
+
+
 def run_canonicalization_campaign(iterations: int = 64, seed: int = 7928) -> dict:
     """Run deterministic ordering mutations and return a JSON-friendly summary."""
     if iterations < 1:
@@ -162,10 +340,28 @@ def run_canonicalization_campaign(iterations: int = 64, seed: int = 7928) -> dic
     }
 
 
+def run_malformed_corpus() -> dict:
+    """Run deterministic malformed/ambiguous BAL cases against validators/codec."""
+    cases = []
+    for _, case in MALFORMED_CASES:
+        cases.append(case())
+    missed = [case for case in cases if not case.get("detected")]
+    return {
+        "campaign": "BAL_MALFORMED_AND_AMBIGUOUS_CORPUS",
+        "offline_only": True,
+        "case_count": len(cases),
+        "ok": not missed,
+        "missed_cases": missed,
+        "cases": cases,
+    }
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run Batman's offline BAL canonicalization campaign")
     parser.add_argument("--iterations", type=int, default=64)
     parser.add_argument("--seed", type=int, default=7928)
+    parser.add_argument("--include-malformed", action="store_true",
+                        help="Also run the malformed/ambiguous BAL corpus")
     parser.add_argument("--format", choices=["text", "json"], default="text")
     return parser
 
@@ -174,12 +370,18 @@ def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
         summary = run_canonicalization_campaign(iterations=args.iterations, seed=args.seed)
+        malformed = run_malformed_corpus() if args.include_malformed else None
     except (AssertionError, ValueError) as exc:
         print(f"INVALID CAMPAIGN: {exc}")
         return 2
 
     if args.format == "json":
-        print(json.dumps(summary, indent=2, sort_keys=True))
+        payload = {
+            "canonicalization": summary,
+            "malformed_corpus": malformed,
+            "ok": summary["ok"] and (malformed is None or malformed["ok"]),
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(f"campaign: {summary['campaign']}")
         print(f"offline only: {summary['offline_only']}")
@@ -188,8 +390,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"coverage: {summary['coverage']}")
         print(f"missed mutations: {len(summary['missed_mutations'])}")
         print(f"repair failures: {len(summary['repair_failures'])}")
-        print(f"result: {'PASS' if summary['ok'] else 'FAIL'}")
-    return 0 if summary["ok"] else 3
+        if malformed is not None:
+            print(f"malformed corpus cases: {malformed['case_count']}")
+            print(f"malformed corpus missed: {len(malformed['missed_cases'])}")
+        ok = summary["ok"] and (malformed is None or malformed["ok"])
+        print(f"result: {'PASS' if ok else 'FAIL'}")
+    return 0 if summary["ok"] and (malformed is None or malformed["ok"]) else 3
 
 
 if __name__ == "__main__":
