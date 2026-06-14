@@ -17,5 +17,6 @@
     <text x="913" y="433" fill="#f3e8ff">Evidence Pack</text>
   </g>
   <path d="M318 423h36M578 423h36M838 423h36" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
-  <text x="96" y="532" fill="#86efac" font-family="Segoe UI, Arial, sans-serif" font-size="26">Honest status: 4-client smoke, 3-way same-head PASS, 4-way refused on split devnet</text>
+  <text x="96" y="516" fill="#86efac" font-family="Segoe UI, Arial, sans-serif" font-size="26">Honest status: 4-client smoke + 3-way same-head PASS</text>
+  <text x="96" y="554" fill="#c4b5fd" font-family="Segoe UI, Arial, sans-serif" font-size="24">Full 4-way differential refused on current devnet split</text>
 </svg>

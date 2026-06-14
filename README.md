@@ -4,17 +4,26 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+![Batman Glamsterdam BAL detector](docs/assets/social-preview.svg)
+
 Batman is a reproducible cross-client detector for Ethereum's **Glamsterdam** upgrade.
 Phase 1 targets **EIP-7928 Block-Level Access Lists (BAL)**: it builds the same block on
 multiple execution clients, compares their independently computed BALs, and localizes any
 divergence to the exact account / storage slot / `block_access_index`.
 
-Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (authoritative).
-Roadmap: **[ROADMAP.md](ROADMAP.md)**.
-Compatibility matrix: **[docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)**.
-Public evidence workflow: **[docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)**.
-Readiness report: **[docs/GLAMSTERDAM_BAL_READINESS_REPORT.md](docs/GLAMSTERDAM_BAL_READINESS_REPORT.md)**.
-GitHub presentation checklist: **[docs/GITHUB_POLISH.md](docs/GITHUB_POLISH.md)**.
+## Reviewer snapshot
+
+| What to check | Current public status |
+|---|---|
+| Scope | Defensive EIP-7928 BAL readiness tooling for Glamsterdam |
+| Detectors | `BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`, `BAL_MIXED_READ_WRITE_ALIAS` |
+| Evidence | 4-client smoke, 3-way same-head PASS, full 4-way refused on current devnet split |
+| Reproducibility | `python -m batman_detector evidence-pack --output-dir dist/public-evidence --verify` |
+| Safety | Local/private devnets only; no mainnet, public RPC, or public vulnerability claims |
+
+Key docs: **[Architecture](docs/ARCHITECTURE.md)** · **[Readiness report](docs/GLAMSTERDAM_BAL_READINESS_REPORT.md)** ·
+**[Compatibility matrix](docs/COMPATIBILITY_MATRIX.md)** · **[Public evidence workflow](docs/PUBLIC_EVIDENCE.md)** ·
+**[Grant proposal](docs/grant-proposal.md)** · **[Roadmap](ROADMAP.md)**.
 
 ## Demo
 
