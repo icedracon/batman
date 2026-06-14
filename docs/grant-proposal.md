@@ -46,12 +46,12 @@ a way to see BAL behavior and impact before mainnet.
 - **54 unit tests + GitHub Actions CI.** MIT-licensed.
 
 **Live-validated** against a running 4-EL Kurtosis devnet: the smoke probe returns a
-BAL from all four clients. The strict `bal-diff-live --refresh` path currently
-blocks a full 4-way differential because the devnet is split at the ePBS/Gloas
-boundary: geth/reth/nethermind share block 7 while erigon is one block ahead at
-block 8. With the erigon outlier explicitly excluded, Batman produced a **3-way
-same-head BAL conformance pass** for geth/reth/nethermind (byte-identical BAL, 0
-findings) and wrote reproducible JSON/Markdown evidence under `artifacts/`.
+BAL from all four configured clients. Public status: **4-client smoke, 3-way
+same-head PASS, full 4-way refused on current devnet split**. The strict
+`bal-diff-live --refresh` path currently blocks a full 4-way differential because
+the devnet latest heads do not all agree. A scoped same-head subset produced
+byte-identical BAL output with 0 findings and wrote reproducible JSON/Markdown
+evidence under `artifacts/`.
 
 ## Project structure (8 weeks)
 
@@ -88,6 +88,8 @@ around late August 2026 and will be adjusted if devnet or fork scheduling change
 - # reproducible cross-client findings or conformance reports issued to client teams.
 - # merged PRs / filed issues against clients or ecosystem tooling.
 - One-command devnet reproducibility (cold-clone to first BAL diff in < N minutes).
+- Public evidence verifier stays green: `python -m batman_detector evidence-pack
+  --output-dir dist/public-evidence --verify`.
 
 ## Ecosystem fit (vs nearest work)
 
@@ -102,6 +104,15 @@ around late August 2026 and will be adjusted if devnet or fork scheduling change
 
 MIT-licensed, reproducible one-command devnet, CI, and docs keep maintenance low and
 let the conformance harness fold into existing ecosystem CI after the grant.
+
+## Community feedback
+
+Feedback has been requested from `ethpandaops/ethereum-package` maintainers about
+the current Gloas/ePBS same-head split and recommended sustained 4-EL BAL
+conformance setup:
+https://github.com/ethpandaops/ethereum-package/issues/1420
+
+This is a feedback request, not an endorsement.
 
 ## Budget
 

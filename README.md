@@ -13,6 +13,7 @@ Architecture and scope: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** (author
 Roadmap: **[ROADMAP.md](ROADMAP.md)**.
 Compatibility matrix: **[docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md)**.
 Public evidence workflow: **[docs/PUBLIC_EVIDENCE.md](docs/PUBLIC_EVIDENCE.md)**.
+Readiness report: **[docs/GLAMSTERDAM_BAL_READINESS_REPORT.md](docs/GLAMSTERDAM_BAL_READINESS_REPORT.md)**.
 GitHub presentation checklist: **[docs/GITHUB_POLISH.md](docs/GITHUB_POLISH.md)**.
 
 ## Demo
@@ -46,9 +47,9 @@ Open roadmap issues:
 - MIT-licensed, installable Python package with a `batman` CLI.
 - 54 unit tests and GitHub Actions CI.
 - Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
-- Full 4-way same-head differential is intentionally refused on the current devnet split:
-  erigon is at block 8 while geth/reth/nethermind share block 7.
-- A scoped 3-way same-head differential for geth/reth/nethermind passes with 0 findings.
+- 3-way same-head PASS: the committed subset evidence has byte-identical BAL output
+  with 0 findings.
+- Full 4-way same-head differential is intentionally refused on the current devnet split.
 - A deterministic offline BAL fuzzer exercises seven ordering mutations plus 13 malformed
   or ambiguous BAL corpus cases.
 - A machine-readable compatibility snapshot summarizes client/head/BAL status without
@@ -148,11 +149,14 @@ same-head inclusion, artifact hashes, and safety flags.
 ## Public evidence bundle
 
 ```bash
-python -m batman_detector evidence-pack --output-dir dist/public-evidence
+python -m batman_detector evidence-pack --output-dir dist/public-evidence --verify
 ```
 
 The generated directory contains copied public-safe artifacts, `manifest.json` with SHA-256
-digests, and a reviewer-friendly `README.md`. Review the directory manually before publication.
+digests, and a reviewer-friendly `README.md`. With `--verify`, Batman also checks source
+artifacts, copied hashes, JSON readability, the compatibility snapshot, and the public
+evidence claim: 4-client smoke, 3-way same-head PASS, full 4-way refused on current devnet
+split. Review the directory manually before publication.
 
 ## Live differential (needs a Gloas devnet)
 
@@ -205,14 +209,14 @@ intended client set to share the same latest head.
 
 Current committed live evidence:
 
-- [live-heads.json](artifacts/live-heads.json): latest-head agreement check showing the current 3+1 split.
+- [live-heads.json](artifacts/live-heads.json): latest-head agreement check showing the committed run's 3+1 split.
 - [live-smoke.json](artifacts/live-smoke.json): 4-client smoke result; every configured EL returned BAL bytes.
 - [live-4way-diff.txt](artifacts/live-4way-diff.txt): honest 4-way same-head refusal on the split devnet.
 - [live-3way-diff.txt](artifacts/live-3way-diff.txt): command output for the scoped 3-way same-head pass.
 - [subset-live-trace.json](artifacts/subset-live-trace.json): 3-way same-head BAL trace for geth/reth/nethermind.
 - [subset-live-report.md](artifacts/subset-live-report.md): detector report for that trace, with 0 findings.
 - [compatibility-snapshot.gloas-devnet0.json](artifacts/compatibility-snapshot.gloas-devnet0.json): machine-readable compatibility snapshot and artifact hashes.
-- Full 4-way same-head differential is intentionally blocked on the current devnet because erigon is one block ahead while geth/reth/nethermind share block 7.
+- Full 4-way same-head differential is intentionally refused on the current devnet split.
 
 ## Maintainer notes
 

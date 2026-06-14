@@ -6,6 +6,9 @@ public infrastructure.
 
 ## Current committed Gloas devnet snapshot
 
+Public status: 4-client smoke, 3-way same-head PASS, full 4-way refused on current
+devnet split.
+
 | Execution client | Engine API returned BAL bytes in smoke path | Included in committed same-head differential | Current note |
 |---|---:|---:|---|
 | Geth | Yes | Yes | Shared the committed subset head with Reth and Nethermind. |
@@ -25,6 +28,9 @@ Committed artifacts:
 
 The JSON snapshot is the machine-readable source for reviewer tooling. It records client
 heads, same-head inclusion, BAL smoke status, artifact hashes, and explicit safety flags.
+
+External feedback has been requested from `ethpandaops/ethereum-package` maintainers:
+https://github.com/ethpandaops/ethereum-package/issues/1420
 
 ## Reproducibility fields for future runs
 

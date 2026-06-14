@@ -104,13 +104,13 @@ pinned EIP-7928 form should be treated as normative.
 | `harness/` (JWT, Engine client, runner, CLI `bal-diff-live`) | implemented, mock-tested |
 | `devnet/` Kurtosis config + endpoint extraction | written, YAML validated |
 | live smoke on a real Gloas devnet | 4 configured ELs returned BAL bytes |
-| live same-head differential | 3-way geth/reth/nethermind pass; 4-way blocked by current erigon/devnet split |
+| live same-head differential | 3-way same-head PASS; full 4-way refused on current devnet split |
 
 Current committed live evidence shows geth, erigon, reth, and nethermind all returning
 `blockAccessList` bytes in the smoke path. The stricter 4-way differential is correctly
-refused on the current devnet because erigon is one block ahead while geth/reth/nethermind
-share the same latest head. The committed subset evidence is therefore a scoped 3-way
-same-head pass with 0 findings, not a full 4-way bounty claim.
+refused on the current devnet split because all latest heads do not agree. The committed
+subset evidence is therefore a scoped 3-way same-head pass with 0 findings, not a full
+4-way bounty claim.
 
 ## Spec pinning
 
