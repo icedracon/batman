@@ -8,9 +8,11 @@
 #   kurtosis run --enclave batman-gloas github.com/ethpandaops/ethereum-package \
 #     --args-file devnet/glamsterdam-devnet.yaml
 #
-# Image tags below are the REAL current Glamsterdam devnet images
+# Image tags below are the historical Glamsterdam devnet images used for the
+# committed public evidence artifacts.
 # (ethpandaops/<client>:glamsterdam-devnet-0, verified on hub.docker.com/u/ethpandaops
-# 2026-04-29). When ethpandaops cut a newer devnet, bump "-devnet-0" everywhere.
+# 2026-04-29). For the maintainer-recommended latest line, use
+# devnet/glamsterdam-devnet5.yaml.
 # If `kurtosis run` fails to pull a specific image, comment that participant out and
 # verify the tag at https://hub.docker.com/u/ethpandaops.
 
@@ -44,10 +46,10 @@ participants:
 
 network_params:
   network: "kurtosis"
-  preset: "minimal"            # matches the ethpandaops glamsterdam-devnet-0 config (faster)
+  preset: "minimal"            # matches the historical devnet-0 config (faster)
   electra_fork_epoch: 0
   fulu_fork_epoch: 0
-  gloas_fork_epoch: 1          # Gloas (ePBS + BAL) at epoch 1, as in glamsterdam-devnet-0
+  gloas_fork_epoch: 1          # Gloas (ePBS + BAL) at epoch 1, as in the historical run
   seconds_per_slot: 6
   # Fulu/PeerDAS validation in ethereum-package requires at least one node with
   # 128+ validators unless using a larger perfect-peerdas topology.

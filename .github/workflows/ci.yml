@@ -36,15 +36,15 @@ jobs:
       - name: Compatibility snapshot smoke test
         run: |
           python -m batman_detector compatibility-snapshot \
-            --heads artifacts/live-heads.json \
-            --smoke artifacts/live-smoke.json \
-            --four-way-output artifacts/live-4way-diff.txt \
-            --subset-trace artifacts/subset-live-trace.json \
-            --subset-report artifacts/subset-live-report.md \
-            --output artifacts/compatibility-snapshot.gloas-devnet0.json \
+            --heads artifacts/devnet5-live-heads.json \
+            --smoke artifacts/devnet5-live-smoke.json \
+            --four-way-output artifacts/devnet5-live-4way-diff.txt \
+            --subset-trace artifacts/devnet5-live-trace.json \
+            --subset-report artifacts/devnet5-live-report.md \
+            --output artifacts/compatibility-snapshot.gloas-devnet5.json \
             --batman-commit "$GITHUB_SHA" \
             --metadata ci=true
-          python -m batman_detector validate artifacts/compatibility-snapshot.gloas-devnet0.json \
+          python -m batman_detector validate artifacts/compatibility-snapshot.gloas-devnet5.json \
             --schema compatibility-snapshot
 
       - name: Public evidence bundle smoke test

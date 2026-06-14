@@ -1,0 +1,36 @@
+﻿{
+  "clients": [
+    {
+      "client_id": "el-1-erigon-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-2-nethermind-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-3-besu-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-4-nimbus-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "rpc_has_bal": false
+    }
+  ]
+}

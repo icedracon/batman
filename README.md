@@ -17,12 +17,12 @@ divergence to the exact account / storage slot / `block_access_index`.
 |---|---|
 | Scope | Defensive EIP-7928 BAL readiness tooling for Glamsterdam |
 | Detectors | `BAL_SYSTEM_CONTRACT_INDEX_CONFUSION`, `BAL_MIXED_READ_WRITE_ALIAS` |
-| Evidence | 4-client smoke, 3-way same-head PASS, full 4-way refused on current devnet split |
+| Evidence | Latest devnet-5: 4-client smoke, 4-way same-head PASS, 0 findings |
 | Reproducibility | `python -m batman_detector evidence-pack --output-dir dist/public-evidence --verify` |
 | Safety | Local/private devnets only; no mainnet, public RPC, or public vulnerability claims |
 
-Key docs: **[Architecture](docs/ARCHITECTURE.md)** · **[Readiness report](docs/GLAMSTERDAM_BAL_READINESS_REPORT.md)** ·
-**[Compatibility matrix](docs/COMPATIBILITY_MATRIX.md)** · **[Public evidence workflow](docs/PUBLIC_EVIDENCE.md)** ·
+Key docs: **[Architecture](docs/ARCHITECTURE.md)** / **[Readiness report](docs/GLAMSTERDAM_BAL_READINESS_REPORT.md)** /
+**[Compatibility matrix](docs/COMPATIBILITY_MATRIX.md)** / **[Public evidence workflow](docs/PUBLIC_EVIDENCE.md)** /
 **[Grant proposal](docs/grant-proposal.md)** · **[Roadmap](ROADMAP.md)**.
 
 ## Demo
@@ -54,11 +54,12 @@ Open roadmap issues:
 ## Current status
 
 - MIT-licensed, installable Python package with a `batman` CLI.
-- 54 unit tests and GitHub Actions CI.
-- Live Gloas devnet smoke evidence shows all four configured ELs returning BAL bytes.
-- 3-way same-head PASS: the committed subset evidence has byte-identical BAL output
+- 59 unit tests and GitHub Actions CI.
+- Latest `glamsterdam-devnet-5` smoke evidence shows all four configured ELs returning BAL bytes.
+- 4-way same-head PASS on devnet-5: erigon/nethermind/besu/nimbus returned comparable BALs
   with 0 findings.
-- Full 4-way same-head differential is intentionally refused on the current devnet split.
+- Historical devnet-0 evidence is retained separately because the first public run correctly
+  refused a split-head 4-way claim.
 - A deterministic offline BAL fuzzer exercises seven ordering mutations plus 13 malformed
   or ambiguous BAL corpus cases.
 - A machine-readable compatibility snapshot summarizes client/head/BAL status without
@@ -87,7 +88,7 @@ Open roadmap issues:
 - **`devnet/`** - a Kurtosis config that stands up a multi-EL Gloas devnet, plus endpoint
   extraction for the harness.
 
-54 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
+59 unit tests, including an assertion that the codec reproduces the spec's empty-BAL hash,
 full mutator coverage for the offline canonicalization campaign, malformed BAL corpus checks,
 compatibility snapshot validation, and evidence-bundle safety checks.
 
@@ -143,13 +144,13 @@ read/write overlap, malformed RLP shapes, and uint boundary failures. No RPC end
 
 ```bash
 python -m batman_detector compatibility-snapshot \
-    --heads artifacts/live-heads.json \
-    --smoke artifacts/live-smoke.json \
-    --four-way-output artifacts/live-4way-diff.txt \
-    --subset-trace artifacts/subset-live-trace.json \
-    --subset-report artifacts/subset-live-report.md \
-    --output artifacts/compatibility-snapshot.gloas-devnet0.json \
-    --metadata source=committed-live-evidence
+    --heads artifacts/devnet5-live-heads.json \
+    --smoke artifacts/devnet5-live-smoke.json \
+    --four-way-output artifacts/devnet5-live-4way-diff.txt \
+    --subset-trace artifacts/devnet5-live-trace.json \
+    --subset-report artifacts/devnet5-live-report.md \
+    --output artifacts/compatibility-snapshot.gloas-devnet5.json \
+    --metadata source=devnet5-maintainer-feedback-refresh
 ```
 
 The snapshot is machine-readable reviewer evidence: client heads, BAL smoke status,
@@ -164,8 +165,8 @@ python -m batman_detector evidence-pack --output-dir dist/public-evidence --veri
 The generated directory contains copied public-safe artifacts, `manifest.json` with SHA-256
 digests, and a reviewer-friendly `README.md`. With `--verify`, Batman also checks source
 artifacts, copied hashes, JSON readability, the compatibility snapshot, and the public
-evidence claim: 4-client smoke, 3-way same-head PASS, full 4-way refused on current devnet
-split. Review the directory manually before publication.
+evidence claim: latest devnet-5 4-client smoke, 4-way same-head PASS, 0 findings.
+Review the directory manually before publication.
 
 ## Live differential (needs a Gloas devnet)
 
@@ -173,7 +174,7 @@ See **[devnet/README.md](devnet/README.md)** to stand up the devnet (Docker + Ku
 pin current Gloas/EIP-7928 client images). Then:
 
 ```bash
-./devnet/endpoints.sh batman-gloas                 # -> devnet/endpoints.json
+./devnet/endpoints.sh batman-gloas-devnet5         # -> devnet/endpoints.json
 
 # Check whether clients are on the same latest head.
 python -m batman_detector bal-heads-live \
@@ -193,18 +194,17 @@ python -m batman_detector bal-diff-live \
     --refresh \
     --wait-shared-head 60
 
-# Committed subset evidence for the current devnet split:
-# geth/reth/nethermind share a head; erigon is one block ahead.
+# Committed devnet-5 evidence:
+# erigon/nethermind/besu/nimbus share a head and return 0 findings.
 python -m batman_detector bal-diff-live \
     --endpoints devnet/endpoints.json \
     --jwt-secret devnet/jwt_file/jwtsecret \
     --payload-spec devnet/payload-spec.latest.json \
     --refresh \
-    --wait-shared-head 5 \
-    --poll-interval 1 \
-    --exclude-client el-2-erigon-lighthouse \
-    --output-trace artifacts/subset-live-trace.json \
-    --output-report artifacts/subset-live-report.md
+    --wait-shared-head 20 \
+    --poll-interval 2 \
+    --output-trace artifacts/devnet5-live-trace.json \
+    --output-report artifacts/devnet5-live-report.md
 ```
 
 The smoke command answers whether each EL can emit `blockAccessList` bytes at all. The
@@ -218,14 +218,15 @@ intended client set to share the same latest head.
 
 Current committed live evidence:
 
-- [live-heads.json](artifacts/live-heads.json): latest-head agreement check showing the committed run's 3+1 split.
-- [live-smoke.json](artifacts/live-smoke.json): 4-client smoke result; every configured EL returned BAL bytes.
-- [live-4way-diff.txt](artifacts/live-4way-diff.txt): honest 4-way same-head refusal on the split devnet.
-- [live-3way-diff.txt](artifacts/live-3way-diff.txt): command output for the scoped 3-way same-head pass.
-- [subset-live-trace.json](artifacts/subset-live-trace.json): 3-way same-head BAL trace for geth/reth/nethermind.
-- [subset-live-report.md](artifacts/subset-live-report.md): detector report for that trace, with 0 findings.
-- [compatibility-snapshot.gloas-devnet0.json](artifacts/compatibility-snapshot.gloas-devnet0.json): machine-readable compatibility snapshot and artifact hashes.
-- Full 4-way same-head differential is intentionally refused on the current devnet split.
+- [devnet5-live-heads.json](artifacts/devnet5-live-heads.json): latest-head agreement check showing all four devnet-5 ELs on the same head.
+- [devnet5-live-smoke.json](artifacts/devnet5-live-smoke.json): 4-client smoke result; every configured EL returned BAL bytes.
+- [devnet5-live-4way-diff.txt](artifacts/devnet5-live-4way-diff.txt): same-head 4-way differential output with 0 findings.
+- [devnet5-live-trace.json](artifacts/devnet5-live-trace.json): 4-way same-head BAL trace for erigon/nethermind/besu/nimbus.
+- [devnet5-live-report.md](artifacts/devnet5-live-report.md): detector report for that trace, with 0 findings.
+- [compatibility-snapshot.gloas-devnet5.json](artifacts/compatibility-snapshot.gloas-devnet5.json): machine-readable compatibility snapshot and artifact hashes.
+
+Historical devnet-0 artifacts are still committed as earlier evidence of Batman's split-head
+refusal behavior, but the reviewer evidence-pack now uses the fresher devnet-5 4-way pass.
 
 ## Maintainer notes
 

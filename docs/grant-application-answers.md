@@ -8,10 +8,14 @@
 Batman: Open-Source Glamsterdam BAL Differential Testing & Impact Analysis Toolkit
 
 ## Applicant profile
-Independent security researcher (EVM smart-contract auditing + systems security; ITMO
-student). Prior work: ChainEDR (smart-contract analysis tooling), audit findings via
-Cantina/Chainlink programs, and this Batman prototype. Solo applicant; this grant funds
-hardening Batman into a reusable public good.
+Independent security researcher and university student focused on systems security,
+incident response, threat hunting, and Web3 auditing. I have about 1.5 years of
+professional cybersecurity experience and currently work in incident response / threat
+hunting. I hold Hack The Box CDSA and OffSec OSCC credentials, am preparing for CPTS,
+and am actively studying Ethereum/Web3 auditing. Prior project work includes ChainEDR
+(smart-contract analysis tooling), audit findings via Cantina/Chainlink programs, and
+this Batman prototype. Solo applicant; this grant funds hardening Batman into a reusable
+public good.
 
 ## Public work / links
 - Repo: https://github.com/icedracon/batman (MIT, public)
@@ -42,16 +46,17 @@ Report, and docs for client teams / auditors / indexers.
 Working prototype, not just an idea: spec-anchored EIP-7928 RLP engine with a test for
 the spec's empty-BAL hash constant, canonical validator, cross-client structural differ,
 JWT Engine API harness, one-command Kurtosis 4-EL devnet, provenance-gated severity,
-54 unit tests, and GitHub Actions CI.
+59 unit tests, and GitHub Actions CI.
 
 Live-validated on a running 4-client Glamsterdam (Gloas) devnet. Public status:
-**4-client smoke, 3-way same-head PASS, full 4-way refused on current devnet split**.
-The smoke probe returns BAL bytes from geth, erigon, reth, and nethermind. The strict
-`bal-diff-live --refresh` path currently blocks a full 4-way same-head differential
-because the devnet latest heads do not all agree. A scoped same-head subset produced
-byte-identical BAL output with 0 findings and wrote reproducible JSON/Markdown evidence
-under `artifacts/`. The 4-way refusal is intentional: the harness will not produce a
-weak claim when latest heads disagree.
+**latest devnet-5 4-client smoke, 4-way same-head PASS, 0 findings**. After
+maintainer feedback that the latest Glamsterdam images are `glamsterdam-devnet-5`,
+Batman added a dedicated devnet-5 config and refreshed public evidence using erigon,
+nethermind, besu, and nimbus. The smoke probe returns BAL bytes from all four clients,
+and the strict `bal-diff-live --refresh` path ran only after all latest heads agreed.
+The result is a reproducible same-head 4-way BAL comparison with 0 findings under
+`artifacts/`. Historical devnet-0 evidence remains committed as an example of Batman
+correctly refusing split-head comparisons.
 
 Reviewers can verify the public evidence bundle locally:
 `python -m batman_detector evidence-pack --output-dir dist/public-evidence --verify`.
@@ -78,9 +83,13 @@ Feedback requested from `ethpandaops/ethereum-package` maintainers on the curren
 Gloas/ePBS same-head split and recommended sustained 4-EL BAL conformance setup:
 https://github.com/ethpandaops/ethereum-package/issues/1420
 
-This is a feedback request, not an endorsement. The grant work will continue sharing
-public-safe conformance datasets and route suspected client-level issues through private
-responsible disclosure.
+A maintainer responded that future issues should be more compact and that the latest
+Glamsterdam images are `glamsterdam-devnet-5`, not `glamsterdam-devnet-0`. I used this
+feedback to add a dedicated devnet-5 config and refresh Batman's BAL smoke and same-head
+conformance evidence on the latest available devnet images. This is useful domain
+feedback, not an endorsement. The grant work will continue sharing public-safe
+conformance datasets and route suspected client-level issues through private responsible
+disclosure.
 
 ## Open-source license
 MIT.

@@ -36,6 +36,6 @@ Pin or surface these paths when sharing the repo:
 - `README.md`
 - `docs/PUBLIC_EVIDENCE.md`
 - `docs/COMPATIBILITY_MATRIX.md`
-- `artifacts/compatibility-snapshot.gloas-devnet0.json`
+- `artifacts/compatibility-snapshot.gloas-devnet5.json`
 - GitHub Actions CI
 - latest release tag

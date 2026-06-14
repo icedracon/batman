@@ -8,13 +8,13 @@ a SHA-256 manifest for reviewers.
 
 ```bash
 python -m batman_detector compatibility-snapshot \
-  --heads artifacts/live-heads.json \
-  --smoke artifacts/live-smoke.json \
-  --four-way-output artifacts/live-4way-diff.txt \
-  --subset-trace artifacts/subset-live-trace.json \
-  --subset-report artifacts/subset-live-report.md \
-  --output artifacts/compatibility-snapshot.gloas-devnet0.json \
-  --metadata source=committed-live-evidence
+  --heads artifacts/devnet5-live-heads.json \
+  --smoke artifacts/devnet5-live-smoke.json \
+  --four-way-output artifacts/devnet5-live-4way-diff.txt \
+  --subset-trace artifacts/devnet5-live-trace.json \
+  --subset-report artifacts/devnet5-live-report.md \
+  --output artifacts/compatibility-snapshot.gloas-devnet5.json \
+  --metadata source=devnet5-maintainer-feedback-refresh
 ```
 
 The snapshot records client head state, BAL smoke status, same-head differential inclusion,
@@ -31,8 +31,8 @@ The output directory contains:
 - copied public-safe artifacts,
 - `manifest.json` with SHA-256 digests and metadata,
 - a generated `README.md` inventory for reviewers.
-- a verification summary confirming: 4-client smoke, 3-way same-head PASS, full
-  4-way refused on current devnet split.
+- a verification summary confirming: latest devnet-5 4-client smoke, 4-way
+  same-head PASS, and 0 findings.
 
 ## Guardrails
 

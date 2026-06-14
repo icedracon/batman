@@ -22,14 +22,18 @@ so we can compare each EL's independently-computed BAL for the same block.
   Run all the commands below from the WSL shell, in this repo's path
   (e.g. `cd /mnt/c/Users/zevs/Documents/Glamsterdam`).
 
-## Image tags (already pinned)
+## Image tags
 
-`glamsterdam-devnet.yaml` pins **real** current images:
+`glamsterdam-devnet.yaml` pins the historical committed-evidence images:
 `ethpandaops/<client>:glamsterdam-devnet-0` (verified on Docker Hub 2026-04-29).
-geth + erigon + reth + nethermind are active (all four EL tags confirmed; geth/
-erigon/lighthouse pre-pulled OK). besu is omitted - not built for devnet-0 yet.
+geth + erigon + reth + nethermind are active. That config is retained so the
+committed public evidence artifacts stay reproducible.
 
-- When ethpandaops cut a newer devnet, bump `-devnet-0` everywhere.
+`glamsterdam-devnet5.yaml` tracks the latest maintainer-recommended devnet line:
+`glamsterdam-devnet-5`. As of the refresh, the available devnet-5 EL images are
+erigon, nethermind, besu, nimbus-eth1, and ethrex; geth/reth devnet-5 tags did
+not resolve under the same Docker Hub naming pattern.
+
 - Browse tags: https://hub.docker.com/u/ethpandaops
 - EIP-7928 is implemented by geth, besu, reth, nethermind, erigon, nimbus-eth1,
   ethrex - enable whichever ELs you want in `participants`.
@@ -41,15 +45,22 @@ kurtosis run --enclave batman-gloas github.com/ethpandaops/ethereum-package \
   --args-file devnet/glamsterdam-devnet.yaml
 ```
 
+For the latest devnet-5 line:
+
+```bash
+kurtosis run --enclave batman-gloas-devnet5 github.com/ethpandaops/ethereum-package \
+  --args-file devnet/glamsterdam-devnet5.yaml
+```
+
 Inspect it:
 ```bash
-kurtosis enclave inspect batman-gloas
+kurtosis enclave inspect batman-gloas-devnet5
 ```
 
 ## Get endpoints for the harness
 
 ```bash
-./devnet/endpoints.sh batman-gloas     # writes devnet/endpoints.json
+./devnet/endpoints.sh batman-gloas-devnet5     # writes devnet/endpoints.json
 ```
 
 `endpoints.json` is a list of `{client_id, rpc, engine}` - the data Batman's
@@ -111,7 +122,7 @@ as subset evidence rather than a full cross-client claim.
 ## Teardown
 
 ```bash
-kurtosis enclave rm -f batman-gloas
+kurtosis enclave rm -f batman-gloas-devnet5
 ```
 
 ## Safety

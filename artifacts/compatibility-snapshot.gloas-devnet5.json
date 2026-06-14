@@ -1,0 +1,127 @@
+{
+  "artifacts": [
+    {
+      "bytes": 481,
+      "kind": "four-way-differential-output",
+      "path": "artifacts/devnet5-live-4way-diff.txt",
+      "sha256": "b6f9c4740d21329336b8c2dc5715977f1770480f7d551ab89b4d29f6bc8f08b6"
+    },
+    {
+      "bytes": 638,
+      "kind": "head-agreement",
+      "path": "artifacts/devnet5-live-heads.json",
+      "sha256": "38ebbca44b3c39a22061f8e8a99ba1d81f65b1681ded56a6a2b6d62cbab851f8"
+    },
+    {
+      "bytes": 458,
+      "kind": "subset-report",
+      "path": "artifacts/devnet5-live-report.md",
+      "sha256": "39ced24ecdc4d6972963abf5615648ace5d69101ab5fe2b0bf85aac19ed9d3c1"
+    },
+    {
+      "bytes": 1103,
+      "kind": "bal-smoke",
+      "path": "artifacts/devnet5-live-smoke.json",
+      "sha256": "25dcbf07197154df4f9a1bfa9be857733a1f5f2ea5e1404ede8c58428f09e7bd"
+    },
+    {
+      "bytes": 3627,
+      "kind": "subset-trace",
+      "path": "artifacts/devnet5-live-trace.json",
+      "sha256": "3d83b1e65e6cb555dc4c47e5e249fa100fa35e1cedba216d9d5416ea80ac95bd"
+    }
+  ],
+  "batman": {
+    "commit": "e7505e74f4a623d6f256468a9a0b410c13d2e650"
+  },
+  "clients": [
+    {
+      "client_id": "el-1-erigon-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "included_in_same_head_differential": true,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-2-nethermind-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "included_in_same_head_differential": true,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-3-besu-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "included_in_same_head_differential": true,
+      "rpc_has_bal": false
+    },
+    {
+      "client_id": "el-4-nimbus-lighthouse",
+      "engine_bal_bytes": 210,
+      "engine_has_bal": true,
+      "head_hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "head_number": 17,
+      "included_in_same_head_differential": true,
+      "rpc_has_bal": false
+    }
+  ],
+  "devnet": {
+    "name": "gloas-private-devnet5",
+    "provenance": "private-devnet"
+  },
+  "generated_at": "2026-06-14T15:10:12.736357+00:00",
+  "head_agreement": {
+    "agree": true,
+    "groups": [
+      {
+        "clients": [
+          "el-1-erigon-lighthouse",
+          "el-2-nethermind-lighthouse",
+          "el-3-besu-lighthouse",
+          "el-4-nimbus-lighthouse"
+        ],
+        "hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+        "number": 17
+      }
+    ]
+  },
+  "metadata": {
+    "source": "devnet5-maintainer-feedback-refresh"
+  },
+  "results": {
+    "four_way_same_head_differential": "available",
+    "smoke_clients": 4,
+    "smoke_clients_with_bal": 4,
+    "subset_same_head_differential": {
+      "clients": [
+        "el-1-erigon-lighthouse",
+        "el-2-nethermind-lighthouse",
+        "el-3-besu-lighthouse",
+        "el-4-nimbus-lighthouse"
+      ],
+      "finding_count": 0
+    }
+  },
+  "safety": {
+    "bounty_claim": false,
+    "mainnet": false,
+    "note": "Engineering compatibility snapshot only; suspected client issues require private disclosure.",
+    "public_rpc": false
+  },
+  "schema_version": "batman.compatibility_snapshot.v1",
+  "snapshot_id": "gloas-devnet-bal-snapshot",
+  "target": {
+    "eips": [
+      "EIP-7928"
+    ],
+    "fork": "Glamsterdam",
+    "spec": "eip-7928"
+  }
+}

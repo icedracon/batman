@@ -1,0 +1,21 @@
+﻿{
+  "agree": true,
+  "client_heads": {
+    "el-1-erigon-lighthouse": {
+      "hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "number": 17
+    },
+    "el-2-nethermind-lighthouse": {
+      "hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "number": 17
+    },
+    "el-3-besu-lighthouse": {
+      "hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "number": 17
+    },
+    "el-4-nimbus-lighthouse": {
+      "hash": "0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434",
+      "number": 17
+    }
+  }
+}

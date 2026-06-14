@@ -1,0 +1,52 @@
+# Local multi-EL Glamsterdam / Gloas devnet for Batman BAL differential testing.
+#
+# Current/latest devnet track per ethpandaops feedback:
+# https://github.com/ethpandaops/ethereum-package/issues/1420
+#
+# This file intentionally does not overwrite glamsterdam-devnet.yaml, which pins
+# the historical devnet-0 setup used for the committed public evidence artifacts.
+# The devnet-5 image set available on Docker Hub is different: geth/reth tags did
+# not resolve during maintainer-feedback refresh, while erigon/nethermind/besu/
+# nimbus-eth1/lighthouse did.
+#
+# Run from WSL:
+#   kurtosis run --enclave batman-gloas-devnet5 github.com/ethpandaops/ethereum-package \
+#     --args-file devnet/glamsterdam-devnet5.yaml
+
+participants:
+  - el_type: erigon
+    el_image: "ethpandaops/erigon:glamsterdam-devnet-5"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-5"
+    count: 1
+
+  - el_type: nethermind
+    el_image: "ethpandaops/nethermind:glamsterdam-devnet-5"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-5"
+    count: 1
+
+  - el_type: besu
+    el_image: "ethpandaops/besu:glamsterdam-devnet-5"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-5"
+    count: 1
+
+  # ethereum-package uses el_type "nimbus"; the Docker repo is nimbus-eth1.
+  - el_type: nimbus
+    el_image: "ethpandaops/nimbus-eth1:glamsterdam-devnet-5"
+    cl_type: lighthouse
+    cl_image: "ethpandaops/lighthouse:glamsterdam-devnet-5"
+    count: 1
+
+network_params:
+  network: "kurtosis"
+  preset: "minimal"
+  electra_fork_epoch: 0
+  fulu_fork_epoch: 0
+  gloas_fork_epoch: 1
+  seconds_per_slot: 6
+  num_validator_keys_per_node: 128
+
+additional_services:
+  - dora

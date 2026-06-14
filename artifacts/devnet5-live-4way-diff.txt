@@ -1,0 +1,6 @@
+﻿shared head: #17 0xa8cab5d82c297749285a7e029a9260e07c11d89eeb0fedfbbab9ae9d1f0d9434 (all clients agree: True)
+WROTE trace: artifacts\devnet5-live-trace.json
+WROTE report: artifacts\devnet5-live-report.md
+clients queried: ['el-1-erigon-lighthouse', 'el-2-nethermind-lighthouse', 'el-3-besu-lighthouse', 'el-4-nimbus-lighthouse']
+clients returning a BAL: ['el-1-erigon-lighthouse', 'el-2-nethermind-lighthouse', 'el-3-besu-lighthouse', 'el-4-nimbus-lighthouse']
+findings: 0

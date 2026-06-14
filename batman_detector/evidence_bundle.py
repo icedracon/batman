@@ -7,11 +7,11 @@ Example:
 
     python -m batman_detector.evidence_bundle \
       --output-dir dist/public-evidence \
-      --artifact artifacts/live-heads.json \
-      --artifact artifacts/live-smoke.json \
-      --artifact artifacts/live-4way-diff.txt \
-      --artifact artifacts/live-3way-diff.txt \
-      --artifact artifacts/subset-live-report.md \
+      --artifact artifacts/devnet5-live-heads.json \
+      --artifact artifacts/devnet5-live-smoke.json \
+      --artifact artifacts/devnet5-live-4way-diff.txt \
+      --artifact artifacts/devnet5-live-trace.json \
+      --artifact artifacts/devnet5-live-report.md \
       --metadata spec=eip-7928 \
       --metadata provenance=private-devnet
 """
@@ -43,13 +43,12 @@ BLOCKED_NAME_FRAGMENTS = (
 )
 MAX_ARTIFACT_BYTES = 2 * 1024 * 1024
 GLAMSTERDAM_BAL_PRESET_ARTIFACTS = [
-    Path("artifacts/live-heads.json"),
-    Path("artifacts/live-smoke.json"),
-    Path("artifacts/live-4way-diff.txt"),
-    Path("artifacts/live-3way-diff.txt"),
-    Path("artifacts/subset-live-trace.json"),
-    Path("artifacts/subset-live-report.md"),
-    Path("artifacts/compatibility-snapshot.gloas-devnet0.json"),
+    Path("artifacts/devnet5-live-heads.json"),
+    Path("artifacts/devnet5-live-smoke.json"),
+    Path("artifacts/devnet5-live-4way-diff.txt"),
+    Path("artifacts/devnet5-live-trace.json"),
+    Path("artifacts/devnet5-live-report.md"),
+    Path("artifacts/compatibility-snapshot.gloas-devnet5.json"),
 ]
 
 
@@ -231,7 +230,13 @@ def verify_public_evidence_bundle(artifacts: list[Path], output_dir: Path) -> di
         if copied_path.suffix.lower() == ".json":
             _load_json_object(copied_path)
 
-    snapshot_path = next((path for path in artifacts if path.name == "compatibility-snapshot.gloas-devnet0.json"), None)
+    snapshot_path = next(
+        (
+            path for path in artifacts
+            if path.name.startswith("compatibility-snapshot.") and path.suffix.lower() == ".json"
+        ),
+        None,
+    )
     if snapshot_path is None:
         raise ValueError("compatibility snapshot is required for --verify")
     snapshot = _load_json_object(snapshot_path)
@@ -265,14 +270,14 @@ def verify_public_evidence_bundle(artifacts: list[Path], output_dir: Path) -> di
         if _sha256(source_path.read_bytes()) != snapshot_artifact.get("sha256"):
             raise ValueError(f"snapshot hash mismatch for {artifact_path}")
 
-    report_path = next((path for path in artifacts if path.name == "subset-live-report.md"), None)
+    report_path = next((path for path in artifacts if "report" in path.name and path.suffix.lower() == ".md"), None)
     if report_path is None:
         raise ValueError("subset live report is required for --verify")
     if _finding_count_from_report(report_path) != 0:
         raise ValueError("subset live report must state Finding count: `0`")
 
     if four_way == "refused_devnet_split":
-        refusal_path = next((path for path in artifacts if path.name == "live-4way-diff.txt"), None)
+        refusal_path = next((path for path in artifacts if "4way" in path.name and path.suffix.lower() == ".txt"), None)
         if refusal_path is None:
             raise ValueError("4-way refusal output is required for split-devnet evidence")
         refusal = refusal_path.read_text(encoding="utf-8", errors="replace")
@@ -284,7 +289,7 @@ def verify_public_evidence_bundle(artifacts: list[Path], output_dir: Path) -> di
         "detector_count": 2,
         "four_way": four_way,
         "smoke": "4-client smoke",
-        "subset": "3-way same-head PASS",
+        "subset": "4-way same-head PASS" if four_way == "available" else "3-way same-head PASS",
         "finding_count": 0,
     }
 

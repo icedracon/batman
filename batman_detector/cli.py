@@ -406,7 +406,7 @@ def _cmd_evidence_pack(args: argparse.Namespace) -> int:
         print("VERIFY OK: public Glamsterdam BAL evidence bundle")
         print(f"detectors: {detector_names}")
         print(f"public evidence: {verification['smoke']}; {verification['subset']}; full 4-way {four_way_label}")
-        print(f"3-way findings: {verification['finding_count']}")
+        print(f"same-head findings: {verification['finding_count']}")
         print("safety: local/private-devnet evidence only; no mainnet/public-RPC/bounty claim")
     return 0
 
