@@ -369,22 +369,17 @@ def _cmd_compatibility_snapshot(args: argparse.Namespace) -> int:
 
 
 def _cmd_evidence_pack(args: argparse.Namespace) -> int:
-    from .evidence_bundle import build_public_evidence_bundle
+    from .evidence_bundle import (
+        GLAMSTERDAM_BAL_PRESET_ARTIFACTS,
+        build_public_evidence_bundle,
+        verify_public_evidence_bundle,
+    )
 
     if args.preset != "glamsterdam-bal":
         print(f"UNKNOWN PRESET: {args.preset}", file=sys.stderr)
         return 2
 
-    artifacts = [
-        Path("artifacts/live-heads.json"),
-        Path("artifacts/live-smoke.json"),
-        Path("artifacts/live-4way-diff.txt"),
-        Path("artifacts/live-3way-diff.txt"),
-        Path("artifacts/subset-live-report.md"),
-    ]
-    snapshot = Path("artifacts/compatibility-snapshot.gloas-devnet0.json")
-    if snapshot.exists():
-        artifacts.append(snapshot)
+    artifacts = list(GLAMSTERDAM_BAL_PRESET_ARTIFACTS)
     try:
         manifest = build_public_evidence_bundle(
             artifacts=artifacts,
@@ -395,11 +390,24 @@ def _cmd_evidence_pack(args: argparse.Namespace) -> int:
                 "provenance": "private-devnet",
             },
         )
+        verification = verify_public_evidence_bundle(artifacts, Path(args.output_dir)) if args.verify else None
     except (OSError, ValueError) as exc:
-        print(f"BUNDLE ERROR: {exc}", file=sys.stderr)
+        prefix = "VERIFY ERROR" if args.verify else "BUNDLE ERROR"
+        print(f"{prefix}: {exc}", file=sys.stderr)
         return 2
     print(f"WROTE: {Path(args.output_dir) / 'manifest.json'}")
     print(f"artifacts: {len(manifest['artifacts'])}")
+    if verification:
+        detector_names = ", ".join(sorted(DETECTORS))
+        four_way_label = {
+            "refused_devnet_split": "refused on current devnet split",
+            "available": "available",
+        }.get(verification["four_way"], verification["four_way"])
+        print("VERIFY OK: public Glamsterdam BAL evidence bundle")
+        print(f"detectors: {detector_names}")
+        print(f"public evidence: {verification['smoke']}; {verification['subset']}; full 4-way {four_way_label}")
+        print(f"3-way findings: {verification['finding_count']}")
+        print("safety: local/private-devnet evidence only; no mainnet/public-RPC/bounty claim")
     return 0
 
 
@@ -510,6 +518,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     evidence_pack.add_argument("--preset", choices=["glamsterdam-bal"], default="glamsterdam-bal")
     evidence_pack.add_argument("--output-dir", default="dist/public-evidence")
+    evidence_pack.add_argument("--verify", action="store_true",
+                               help="Verify source artifacts, copied files, hashes, and public evidence claims")
     evidence_pack.set_defaults(func=_cmd_evidence_pack)
 
     return parser

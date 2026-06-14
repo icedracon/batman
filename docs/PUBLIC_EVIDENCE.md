@@ -23,7 +23,7 @@ artifact hashes, and explicit safety flags.
 ## Build the committed reviewer bundle
 
 ```bash
-python -m batman_detector evidence-pack --output-dir dist/public-evidence
+python -m batman_detector evidence-pack --output-dir dist/public-evidence --verify
 ```
 
 The output directory contains:
@@ -31,6 +31,8 @@ The output directory contains:
 - copied public-safe artifacts,
 - `manifest.json` with SHA-256 digests and metadata,
 - a generated `README.md` inventory for reviewers.
+- a verification summary confirming: 4-client smoke, 3-way same-head PASS, full
+  4-way refused on current devnet split.
 
 ## Guardrails
 
@@ -42,6 +44,10 @@ The builder refuses:
 - unsupported file types,
 - individual artifacts larger than 2 MiB,
 - duplicate output filenames.
+
+With `--verify`, Batman also checks that source artifacts exist, JSON artifacts parse,
+copied files match the manifest hashes, compatibility snapshot hashes match the source
+files, and the public subset report records zero findings.
 
 These guardrails reduce accidental leakage. They are not a substitute for manually reviewing
 the generated folder before publication.

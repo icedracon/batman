@@ -50,6 +50,7 @@ jobs:
       - name: Public evidence bundle smoke test
         run: |
           python -m batman_detector evidence-pack \
-            --output-dir dist/public-evidence
+            --output-dir dist/public-evidence \
+            --verify
           test -f dist/public-evidence/manifest.json
           test -f dist/public-evidence/README.md

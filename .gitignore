@@ -10,6 +10,7 @@ dist/
 first-scan-report.md
 *-scan-report.md
 reports/private/
+artifacts/PRIVATE-findings.md
 
 # Local Kurtosis/devnet runtime outputs. Includes Engine API JWT secrets.
 devnet/endpoints.json
